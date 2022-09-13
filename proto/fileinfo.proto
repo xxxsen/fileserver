@@ -1,0 +1,61 @@
+syntax = "proto2";
+package gameinfo;
+
+option go_package = "fileserver/fileinfo";
+
+message FileUploadResponse {
+    optional string down_key = 1; //
+}
+
+message FileUploadBeginRequest {
+    optional uint64 file_size = 1; //
+}
+
+message FileUploadBeginResponse {
+    optional string upload_ctx = 1; //refer: UploadIdCtx
+    optional uint32 block_size = 2; //
+}
+
+message FileUploadPartResponse {
+
+}
+
+message FileUploadEndRequest {
+    optional string upload_ctx = 1; //
+    optional string file_name = 2; //
+    optional string hash = 3; //
+}
+
+message FileUploadEndResponse {
+    optional string down_key = 1; //
+}
+
+message UploadIdCtx {
+    optional uint64 file_size = 1; //
+    optional string upload_id = 2; //
+    optional string down_key = 3; //
+    optional uint32 block_size = 4; //
+}
+
+message GetFileMetaRequest {
+    repeated string down_key = 1; //
+    optional bool enable_fetch_low_level_info = 2; //
+}
+
+message FileItem {
+    optional string file_name = 1; //
+    optional string hash = 2; //
+    optional uint64 file_size = 3; //
+    optional uint64 create_time = 4; //
+    optional string down_key = 5; //
+    optional FileMetaLowLevelInfo low_level_info = 6; //
+    optional bool exist = 7; //
+}
+
+message FileMetaLowLevelInfo {
+    optional string etag = 1; //
+}
+
+message GetFileMetaResponse {
+    repeated FileItem list = 1; //
+}
