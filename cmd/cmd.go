@@ -6,6 +6,7 @@ import (
 	"fileserver/handler"
 	"flag"
 
+	"github.com/xxxsen/common/idgen"
 	"github.com/xxxsen/common/logger"
 	"github.com/xxxsen/common/naivesvr"
 	"github.com/xxxsen/common/s3"
@@ -27,6 +28,9 @@ func main() {
 	logger.Info("recv config", zap.Any("config", c))
 	if err := db.InitFileDB(&c.FileDBInfo); err != nil {
 		logger.With(zap.Error(err)).Fatal("init media db fail")
+	}
+	if err := idgen.Init(c.IDGenInfo.WorkerID); err != nil {
+		logger.With(zap.Error(err)).Fatal("init idgen fail")
 	}
 	if err := s3.InitGlobal(
 		s3.WithEndpoint(c.S3Info.Endpoint),
