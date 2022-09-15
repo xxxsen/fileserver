@@ -21,6 +21,7 @@ type BeginFileUploadRequest struct {
 }
 
 type BeginFileUploadResponse struct {
+	UploadID string
 }
 
 type PartFileUploadRequest struct {
@@ -58,9 +59,9 @@ type FileDownloadResponse struct {
 type IFsCore interface {
 	BlockSize() int64
 	MaxFileSize() int64
-	FileUpload(ctx context.Context, uctx *FileUploadRequest) (string, error)
-	FileDownload(ctx context.Context, fctx *FileDownloadRequest) (io.ReadCloser, error)
-	BeginFileUpload(ctx context.Context, fctx *BeginFileUploadRequest) (string, error)
-	PartFileUpload(ctx context.Context, pctx *PartFileUploadRequest) error
-	FinishFileUpload(ctx context.Context, fctx *FinishFileUploadRequest) (string, error)
+	FileUpload(ctx context.Context, uctx *FileUploadRequest) (*FileUploadResponse, error)
+	FileDownload(ctx context.Context, fctx *FileDownloadRequest) (*FileDownloadResponse, error)
+	BeginFileUpload(ctx context.Context, fctx *BeginFileUploadRequest) (*BeginFileUploadResponse, error)
+	PartFileUpload(ctx context.Context, pctx *PartFileUploadRequest) (*PartFileUploadResponse, error)
+	FinishFileUpload(ctx context.Context, fctx *FinishFileUploadRequest) (*FinishFileUploadResponse, error)
 }

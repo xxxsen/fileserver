@@ -19,11 +19,12 @@ type IDGenConfig struct {
 }
 
 type Config struct {
-	LogInfo    logger.LogConfig  `json:"log_info"`
-	FileDBInfo database.DBConfig `json:"file_db_info"`
-	ServerInfo ServerConfig      `json:"server_info"`
-	S3Info     s3.S3Config       `json:"s3_info"`
-	IDGenInfo  IDGenConfig       `json:"idgen_info"`
+	LogInfo     logger.LogConfig  `json:"log_info"`
+	FileDBInfo  database.DBConfig `json:"file_db_info"`
+	ServerInfo  ServerConfig      `json:"server_info"`
+	StorageType string            `json:"storage_type"`
+	S3Info      s3.S3Config       `json:"s3_info"`
+	IDGenInfo   IDGenConfig       `json:"idgen_info"`
 }
 
 func Parse(f string) (*Config, error) {

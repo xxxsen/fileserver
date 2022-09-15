@@ -1,19 +1,14 @@
 package file
 
 import (
-	"context"
 	"fileserver/dao"
 	"fileserver/model"
 	"fileserver/proto/fileserver/fileinfo"
-	"fmt"
 	"net/http"
-
-	"github.com/xxxsen/common/s3"
 
 	"github.com/xxxsen/common/errs"
 
 	"github.com/gin-gonic/gin"
-	"github.com/xxxsen/runner"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -37,31 +32,9 @@ func Meta(ctx *gin.Context, request interface{}) (int, errs.IError, interface{})
 		return http.StatusOK, errs.Wrap(errs.ErrDatabase, "read file list fail", err), nil
 	}
 	metalist := fileinfo2pbmeta(req.GetDownKey(), daoRsp.List)
-	_ = buildS3Info(ctx, metalist)
 	return http.StatusOK, nil, &fileinfo.GetFileMetaResponse{
 		List: metalist,
 	}
-}
-
-func buildS3Info(ctx context.Context, metalist []*fileinfo.FileItem) error {
-	run := runner.New(10)
-	for _, meta := range metalist {
-		meta := meta
-		if !meta.GetExist() {
-			continue
-		}
-		run.Add(fmt.Sprintf("fetch_%s", meta.GetDownKey()), func(ctx context.Context) error {
-			info, err := s3.Client.GetFileInfo(ctx, meta.GetDownKey())
-			if err != nil {
-				return errs.Wrap(errs.ErrS3, "read key fail", err).WithDebugMsg("key:%s", meta.GetDownKey())
-			}
-			meta.LowLevelInfo = &fileinfo.FileMetaLowLevelInfo{
-				Etag: info.ETag,
-			}
-			return nil
-		})
-	}
-	return run.Run(ctx)
 }
 
 func fileinfo2pbmeta(order []string, lst []*model.FileItem) []*fileinfo.FileItem {

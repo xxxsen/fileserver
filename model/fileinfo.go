@@ -18,6 +18,7 @@ type FileItem struct {
 	FileSize   uint64
 	CreateTime uint64
 	DownKey    string
+	Extra      []byte
 }
 
 type GetFileResponse struct {

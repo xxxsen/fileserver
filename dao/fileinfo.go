@@ -13,7 +13,7 @@ import (
 
 var (
 	fileDBFields = []string{
-		"id", "file_name", "hash", "file_size", "create_time", "down_key",
+		"id", "file_name", "hash", "file_size", "create_time", "down_key", "extra",
 	}
 )
 
@@ -64,7 +64,7 @@ func (d *fileInfoDaoImpl) ListFile(ctx context.Context, req *model.ListFileReque
 		item := &model.FileItem{}
 		if err := rows.Scan(&item.Id, &item.FileName,
 			&item.Hash, &item.FileSize, &item.CreateTime,
-			&item.DownKey); err != nil {
+			&item.DownKey, &item.Extra); err != nil {
 			return nil, errs.Wrap(errs.ErrDatabase, "scan fail", err)
 		}
 		rs = append(rs, item)
@@ -101,6 +101,7 @@ func (d *fileInfoDaoImpl) CreateFile(ctx context.Context, req *model.CreateFileR
 			"file_size":   req.Item.FileSize,
 			"create_time": req.Item.CreateTime,
 			"down_key":    req.Item.DownKey,
+			"extra":       req.Item.Extra,
 		},
 	}
 	sql, args, err := builder.BuildInsertIgnore(d.Table(), data)
