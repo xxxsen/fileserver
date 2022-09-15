@@ -5,22 +5,25 @@ import (
 	"io"
 )
 
-type FileUploadContext struct {
+type FileUploadRequest struct {
 	ReadSeeker io.ReadSeeker
 	Size       int64
 	MD5        string
 }
 
-type FileMeta struct {
-	Name string
-	Size int64
+type FileUploadResponse struct {
+	Key   string
+	Extra []byte
 }
 
-type BeginFileUploadContext struct {
+type BeginFileUploadRequest struct {
 	FileSize int64
 }
 
-type PartFileUploadContext struct {
+type BeginFileUploadResponse struct {
+}
+
+type PartFileUploadRequest struct {
 	ReadSeeker io.ReadSeeker
 	UploadId   string
 	PartId     uint64
@@ -28,23 +31,36 @@ type PartFileUploadContext struct {
 	MD5        string
 }
 
-type FinishFileUploadContext struct {
+type PartFileUploadResponse struct {
+}
+
+type FinishFileUploadRequest struct {
 	UploadId string
 	FileMd5  string
 	FileName string
 }
 
-type FileDownloadContext struct {
+type FinishFileUploadResponse struct {
 	Key   string
-	Range *string
+	Extra []byte
+}
+
+type FileDownloadRequest struct {
+	Key     string
+	Extra   []byte
+	StartAt int64
+}
+
+type FileDownloadResponse struct {
+	Reader io.ReadCloser
 }
 
 type IFsCore interface {
 	BlockSize() int64
 	MaxFileSize() int64
-	FileUpload(ctx context.Context, uctx *FileUploadContext) (string, error)
-	FileDownload(ctx context.Context, fctx *FileDownloadContext) (io.ReadCloser, error)
-	BeginFileUpload(ctx context.Context, fctx *BeginFileUploadContext) (string, error)
-	PartFileUpload(ctx context.Context, pctx *PartFileUploadContext) error
-	FinishFileUpload(ctx context.Context, fctx *FinishFileUploadContext) (string, error)
+	FileUpload(ctx context.Context, uctx *FileUploadRequest) (string, error)
+	FileDownload(ctx context.Context, fctx *FileDownloadRequest) (io.ReadCloser, error)
+	BeginFileUpload(ctx context.Context, fctx *BeginFileUploadRequest) (string, error)
+	PartFileUpload(ctx context.Context, pctx *PartFileUploadRequest) error
+	FinishFileUpload(ctx context.Context, fctx *FinishFileUploadRequest) (string, error)
 }

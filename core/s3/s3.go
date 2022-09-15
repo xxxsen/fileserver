@@ -46,7 +46,7 @@ func (c *S3Core) MaxFileSize() int64 {
 	return defaultMaxS3FileSize
 }
 
-func (c *S3Core) FileUpload(ctx context.Context, uctx *core.FileUploadContext) (string, error) {
+func (c *S3Core) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (string, error) {
 	fid := c.c.idg.NextId()
 	xfid := utils.EncodeFileId(fid)
 	if err := c.c.client.Upload(ctx, xfid, uctx.ReadSeeker, uctx.Size, uctx.MD5); err != nil {
@@ -55,15 +55,15 @@ func (c *S3Core) FileUpload(ctx context.Context, uctx *core.FileUploadContext) (
 	return xfid, nil
 }
 
-func (c *S3Core) FileDownload(ctx context.Context, fctx *core.FileDownloadContext) (io.ReadCloser, error) {
-	body, err := c.c.client.DownloadByRange(ctx, fctx.Key, fctx.Range)
+func (c *S3Core) FileDownload(ctx context.Context, fctx *core.FileDownloadRequest) (io.ReadCloser, error) {
+	body, err := c.c.client.DownloadByRange(ctx, fctx.Key, fctx.StartAt)
 	if err != nil {
 		return nil, err
 	}
 	return body, nil
 }
 
-func (c *S3Core) BeginFileUpload(ctx context.Context, fctx *core.BeginFileUploadContext) (string, error) {
+func (c *S3Core) BeginFileUpload(ctx context.Context, fctx *core.BeginFileUploadRequest) (string, error) {
 	fid := c.c.idg.NextId()
 	xfid := utils.EncodeFileId(fid)
 	uploadid, err := c.c.client.BeginUpload(ctx, xfid)
@@ -82,7 +82,7 @@ func (c *S3Core) BeginFileUpload(ctx context.Context, fctx *core.BeginFileUpload
 	return upid, nil
 }
 
-func (c *S3Core) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadContext) error {
+func (c *S3Core) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadRequest) error {
 	uctx, err := utils.DecodeUploadID(pctx.UploadId)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func (c *S3Core) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadCo
 	return nil
 }
 
-func (c *S3Core) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUploadContext) (string, error) {
+func (c *S3Core) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUploadRequest) (string, error) {
 	uctx, err := utils.DecodeUploadID(fctx.UploadId)
 	if err != nil {
 		return "", err
