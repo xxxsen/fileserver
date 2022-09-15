@@ -42,8 +42,9 @@ type FinishFileUploadRequest struct {
 }
 
 type FinishFileUploadResponse struct {
-	Key   string
-	Extra []byte
+	Key      string
+	Extra    []byte
+	FileSize int64
 }
 
 type FileDownloadRequest struct {

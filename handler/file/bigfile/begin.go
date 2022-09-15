@@ -1,36 +1,33 @@
 package bigfile
 
 import (
+	"fileserver/core"
+	"fileserver/handler/getter"
+	"fileserver/proto/fileserver/fileinfo"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/errs"
+	"google.golang.org/protobuf/proto"
 )
 
 func Begin(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) {
-	//TODO: finish it
-	panic(1)
-	// req := request.(*fileinfo.FileUploadBeginRequest)
-	// if req.GetFileSize() == 0 {
-	// 	return http.StatusOK, errs.New(errs.ErrParam, "zero size file"), nil
-	// }
-	// if req.GetFileSize() > constants.MaxFileSize {
-	// 	return http.StatusOK, errs.New(errs.ErrParam, "file size out of limit"), nil
-	// }
-	// downkey := fmt.Sprintf("%d_%s", model.FileTypeAny, utils.EncodeFileId(idgen.NextId()))
-	// key, err := s3.Client.BeginUpload(ctx, downkey)
-	// if err != nil {
-	// 	return http.StatusOK, errs.Wrap(errs.ErrS3, "begin upload fail", err), nil
-	// }
-	// uploadidctx := &fileinfo.UploadIdCtx{
-	// 	FileSize: req.FileSize,
-	// 	UploadId: proto.String(key),
-	// 	DownKey:  proto.Uint64(downkey),
-	// }
-	// uploadctx, err := utils.EncodeUploadID(uploadidctx)
-	// if err != nil {
-	// 	return http.StatusOK, errs.Wrap(errs.ErrServiceInternal, "build upload id fail", err), nil
-	// }
-	// return http.StatusOK, nil, &fileinfo.FileUploadBeginResponse{
-	// 	UploadCtx: proto.String(uploadctx),
-	// 	BlockSize: proto.Uint32(uint32(constants.BlockSize)),
-	// }
+	fs := getter.MustGetFsClient(ctx)
+	req := request.(*fileinfo.FileUploadBeginRequest)
+	if req.GetFileSize() == 0 {
+		return http.StatusOK, errs.New(errs.ErrParam, "zero size file"), nil
+	}
+	if req.GetFileSize() > uint64(fs.MaxFileSize()) {
+		return http.StatusOK, errs.New(errs.ErrParam, "file size out of limit"), nil
+	}
+	uploadRsp, err := fs.BeginFileUpload(ctx, &core.BeginFileUploadRequest{
+		FileSize: int64(req.GetFileSize()),
+	})
+	if err != nil {
+		return http.StatusOK, errs.Wrap(errs.ErrStorage, "begin upload fail", err), nil
+	}
+	return http.StatusOK, nil, &fileinfo.FileUploadBeginResponse{
+		UploadCtx: proto.String(uploadRsp.UploadID),
+		BlockSize: proto.Uint32(uint32(fs.BlockSize())),
+	}
 }

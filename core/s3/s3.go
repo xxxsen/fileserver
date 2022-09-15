@@ -118,5 +118,5 @@ func (c *S3Core) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUplo
 		utils.CalcFileBlockCount(uctx.GetFileSize(), uint64(uctx.GetBlockSize()))); err != nil {
 		return nil, err
 	}
-	return &core.FinishFileUploadResponse{Key: uctx.GetFileKey()}, nil
+	return &core.FinishFileUploadResponse{Key: uctx.GetFileKey(), FileSize: int64(uctx.GetFileSize())}, nil
 }
