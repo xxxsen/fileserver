@@ -69,7 +69,6 @@ func initStorage(c *config.Config) (core.IFsCore, error) {
 		}
 		s3core, err := s3.New(
 			s3.WithS3Client(client),
-			s3.WithIDGen(idgen.Default()),
 		)
 		if err != nil {
 			return nil, errs.Wrap(errs.ErrStorage, "init s3 core fail", err)

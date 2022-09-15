@@ -32,9 +32,6 @@ func New(opts ...Option) (*S3Core, error) {
 	if c.client == nil {
 		return nil, fmt.Errorf("nil client")
 	}
-	if c.idg == nil {
-		return nil, fmt.Errorf("nil idgenerator")
-	}
 	return &S3Core{c: c}, nil
 }
 
@@ -47,8 +44,7 @@ func (c *S3Core) MaxFileSize() int64 {
 }
 
 func (c *S3Core) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*core.FileUploadResponse, error) {
-	fid := c.c.idg.NextId()
-	xfid := utils.EncodeFileId(fid)
+	xfid := uuid.NewString()
 	if err := c.c.client.Upload(ctx, xfid, uctx.ReadSeeker, uctx.Size, uctx.MD5); err != nil {
 		return nil, err
 	}
