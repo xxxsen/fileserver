@@ -6,6 +6,7 @@ import (
 	"fileserver/dao"
 	"fileserver/handler/getter"
 	"fileserver/model"
+	"fileserver/utils"
 	"fmt"
 	"io"
 	"mime"
@@ -24,12 +25,17 @@ import (
 var fileCache, _ = cache.NewLocalCache(20000)
 
 type BasicFileDownloadRequest struct {
-	DownKey uint64 `form:"down_key" binding:"required"`
+	DownKey string `form:"down_key" binding:"required"`
 }
 
 func FileDownload(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) {
 	req := request.(*BasicFileDownloadRequest)
-	downKey := req.DownKey
+	strDownKey := req.DownKey
+	downKey, err := utils.DecodeFileId(strDownKey)
+	if err != nil {
+		return http.StatusOK, errs.Wrap(errs.ErrParam, "invalid down key", err), nil
+	}
+
 	ifileinfo, exist, err := cacheGetFileMeta(ctx, fileCache, downKey, func() (interface{}, bool, error) {
 		daoRsp, exist, err := dao.FileInfoDao.GetFile(ctx, &model.GetFileRequest{
 			DownKey: downKey,
@@ -68,12 +74,12 @@ func FileDownload(ctx *gin.Context, request interface{}) (int, errs.IError, inte
 	writer.Header().Set("Content-Type", contentType)
 	sz, err := io.Copy(ctx.Writer, rsp.Reader)
 	if err != nil {
-		logutil.GetLogger(ctx).With(zap.Error(err), zap.Uint64("key", req.DownKey)).Error("copy stream fail")
+		logutil.GetLogger(ctx).With(zap.Error(err), zap.Uint64("key", downKey)).Error("copy stream fail")
 		return http.StatusOK, nil, nil
 	}
 	if sz != int64(fileinfo.FileSize) {
 		logutil.GetLogger(ctx).With(zap.Error(err),
-			zap.Uint64("key", req.DownKey), zap.Uint64("need_size", fileinfo.FileSize),
+			zap.Uint64("key", downKey), zap.Uint64("need_size", fileinfo.FileSize),
 			zap.Int64("write_size", sz)).Error("io size not match")
 		return http.StatusOK, nil, nil
 	}

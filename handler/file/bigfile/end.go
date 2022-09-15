@@ -6,6 +6,7 @@ import (
 	"fileserver/handler/getter"
 	"fileserver/model"
 	"fileserver/proto/fileserver/fileinfo"
+	"fileserver/utils"
 	"net/http"
 	"time"
 
@@ -48,6 +49,6 @@ func End(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) 
 		return http.StatusOK, errs.Wrap(errs.ErrDatabase, "write file record fail", err), nil
 	}
 	return http.StatusOK, nil, &fileinfo.FileUploadEndResponse{
-		DownKey: proto.Uint64(fileid),
+		DownKey: proto.String(utils.EncodeFileId(fileid)),
 	}
 }

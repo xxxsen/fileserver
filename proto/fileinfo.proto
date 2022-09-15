@@ -4,7 +4,7 @@ package gameinfo;
 option go_package = "fileserver/fileinfo";
 
 message FileUploadResponse {
-    optional uint64 down_key = 1; //
+    optional string down_key = 1; //
 }
 
 message FileUploadBeginRequest {
@@ -27,7 +27,7 @@ message FileUploadEndRequest {
 }
 
 message FileUploadEndResponse {
-    optional uint64 down_key = 1; //
+    optional string down_key = 1; //
 }
 
 message UploadIdCtx {

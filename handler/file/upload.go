@@ -6,6 +6,7 @@ import (
 	"fileserver/handler/getter"
 	"fileserver/model"
 	"fileserver/proto/fileserver/fileinfo"
+	"fileserver/utils"
 	"mime/multipart"
 	"net/http"
 	"time"
@@ -64,6 +65,6 @@ func FileUpload(ctx *gin.Context, request interface{}) (int, errs.IError, interf
 		return http.StatusOK, errs.Wrap(errs.ErrDatabase, "insert image to db fail", err), nil
 	}
 	return http.StatusOK, nil, &fileinfo.FileUploadResponse{
-		DownKey: proto.Uint64(fileid),
+		DownKey: proto.String(utils.EncodeFileId(fileid)),
 	}
 }
