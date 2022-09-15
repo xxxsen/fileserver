@@ -7,6 +7,7 @@ import (
 	"fileserver/utils"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/xxxsen/common/errs"
 	"google.golang.org/protobuf/proto"
 )
@@ -63,8 +64,7 @@ func (c *S3Core) FileDownload(ctx context.Context, fctx *core.FileDownloadReques
 }
 
 func (c *S3Core) BeginFileUpload(ctx context.Context, fctx *core.BeginFileUploadRequest) (*core.BeginFileUploadResponse, error) {
-	fid := c.c.idg.NextId()
-	xfid := utils.EncodeFileId(fid)
+	xfid := uuid.NewString()
 	uploadid, err := c.c.client.BeginUpload(ctx, xfid)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (c *S3Core) BeginFileUpload(ctx context.Context, fctx *core.BeginFileUpload
 	upid, err := utils.EncodeUploadID(&fileinfo.UploadIdCtx{
 		FileSize:  proto.Uint64(uint64(fctx.FileSize)),
 		UploadId:  proto.String(uploadid),
-		DownKey:   proto.String(xfid),
+		FileKey:   proto.String(xfid),
 		BlockSize: proto.Uint32(uint32(c.BlockSize())),
 	})
 	if err != nil {
@@ -103,7 +103,7 @@ func (c *S3Core) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadRe
 				uctx.GetFileSize())
 		}
 	}
-	if err := c.c.client.UploadPart(ctx, uctx.GetDownKey(), uctx.GetUploadId(), int(pctx.PartId), pctx.ReadSeeker, pctx.MD5); err != nil {
+	if err := c.c.client.UploadPart(ctx, uctx.GetFileKey(), uctx.GetUploadId(), int(pctx.PartId), pctx.ReadSeeker, pctx.MD5); err != nil {
 		return nil, err
 	}
 	return &core.PartFileUploadResponse{}, nil
@@ -114,9 +114,9 @@ func (c *S3Core) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUplo
 	if err != nil {
 		return nil, err
 	}
-	if err := c.c.client.EndUpload(ctx, uctx.GetDownKey(), uctx.GetUploadId(),
+	if err := c.c.client.EndUpload(ctx, uctx.GetFileKey(), uctx.GetUploadId(),
 		utils.CalcFileBlockCount(uctx.GetFileSize(), uint64(uctx.GetBlockSize()))); err != nil {
 		return nil, err
 	}
-	return &core.FinishFileUploadResponse{Key: uctx.GetDownKey()}, nil
+	return &core.FinishFileUploadResponse{Key: uctx.GetFileKey()}, nil
 }

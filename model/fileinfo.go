@@ -8,7 +8,7 @@ type CreateFileResponse struct {
 }
 
 type GetFileRequest struct {
-	DownKey string
+	DownKey uint64
 }
 
 type FileItem struct {
@@ -17,8 +17,9 @@ type FileItem struct {
 	Hash       string
 	FileSize   uint64
 	CreateTime uint64
-	DownKey    string
+	DownKey    uint64
 	Extra      []byte
+	FileKey    string
 }
 
 type GetFileResponse struct {
@@ -27,7 +28,7 @@ type GetFileResponse struct {
 
 type ListFileQuery struct {
 	ID      []uint64
-	DownKey []string
+	DownKey []uint64
 }
 
 type ListFileRequest struct {

@@ -37,8 +37,8 @@ func Meta(ctx *gin.Context, request interface{}) (int, errs.IError, interface{})
 	}
 }
 
-func fileinfo2pbmeta(order []string, lst []*model.FileItem) []*fileinfo.FileItem {
-	mapper := make(map[string]*model.FileItem)
+func fileinfo2pbmeta(order []uint64, lst []*model.FileItem) []*fileinfo.FileItem {
+	mapper := make(map[uint64]*model.FileItem)
 	for _, item := range lst {
 		mapper[item.DownKey] = item
 	}
@@ -46,7 +46,7 @@ func fileinfo2pbmeta(order []string, lst []*model.FileItem) []*fileinfo.FileItem
 	for _, key := range order {
 		src := mapper[key]
 		dst := &fileinfo.FileItem{
-			DownKey: proto.String(key),
+			DownKey: proto.Uint64(key),
 			Exist:   proto.Bool(false),
 		}
 		if src != nil {
@@ -54,7 +54,7 @@ func fileinfo2pbmeta(order []string, lst []*model.FileItem) []*fileinfo.FileItem
 			dst.Hash = proto.String(src.Hash)
 			dst.FileSize = proto.Uint64(src.FileSize)
 			dst.CreateTime = proto.Uint64(src.CreateTime)
-			dst.DownKey = proto.String(src.DownKey)
+			dst.DownKey = proto.Uint64(src.DownKey)
 			dst.Exist = proto.Bool(true)
 		}
 		rs = append(rs, dst)

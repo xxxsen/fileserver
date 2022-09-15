@@ -24,7 +24,7 @@ import (
 var fileCache, _ = cache.NewLocalCache(20000)
 
 type BasicFileDownloadRequest struct {
-	DownKey string `form:"down_key" binding:"required"`
+	DownKey uint64 `form:"down_key" binding:"required"`
 }
 
 func FileDownload(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) {
@@ -53,7 +53,7 @@ func FileDownload(ctx *gin.Context, request interface{}) (int, errs.IError, inte
 	fs := getter.MustGetFsClient(ctx)
 
 	rsp, err := fs.FileDownload(ctx, &core.FileDownloadRequest{
-		Key:     downKey,
+		Key:     fileinfo.FileKey,
 		Extra:   fileinfo.Extra,
 		StartAt: 0,
 	})
@@ -68,12 +68,12 @@ func FileDownload(ctx *gin.Context, request interface{}) (int, errs.IError, inte
 	writer.Header().Set("Content-Type", contentType)
 	sz, err := io.Copy(ctx.Writer, rsp.Reader)
 	if err != nil {
-		logutil.GetLogger(ctx).With(zap.Error(err), zap.String("key", req.DownKey)).Error("copy stream fail")
+		logutil.GetLogger(ctx).With(zap.Error(err), zap.Uint64("key", req.DownKey)).Error("copy stream fail")
 		return http.StatusOK, nil, nil
 	}
 	if sz != int64(fileinfo.FileSize) {
 		logutil.GetLogger(ctx).With(zap.Error(err),
-			zap.String("key", req.DownKey), zap.Uint64("need_size", fileinfo.FileSize),
+			zap.Uint64("key", req.DownKey), zap.Uint64("need_size", fileinfo.FileSize),
 			zap.Int64("write_size", sz)).Error("io size not match")
 		return http.StatusOK, nil, nil
 	}

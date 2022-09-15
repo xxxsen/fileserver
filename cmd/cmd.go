@@ -4,6 +4,7 @@ import (
 	"fileserver/config"
 	"fileserver/constants"
 	"fileserver/core"
+	"fileserver/core/bot"
 	"fileserver/core/s3"
 	"fileserver/db"
 	"fileserver/handler"
@@ -74,6 +75,14 @@ func initStorage(c *config.Config) (core.IFsCore, error) {
 			return nil, errs.Wrap(errs.ErrStorage, "init s3 core fail", err)
 		}
 		return s3core, nil
+	case "tgbot":
+		botcore, err := bot.New(
+			bot.WithAuth(int64(c.BotInfo.Chatid), c.BotInfo.Token),
+		)
+		if err != nil {
+			return nil, errs.Wrap(errs.ErrStorage, "init tg bot fail", err)
+		}
+		return botcore, nil
 	}
 	return nil, errs.New(errs.ErrParam, "unsupport storage type:%s", c.StorageType)
 }

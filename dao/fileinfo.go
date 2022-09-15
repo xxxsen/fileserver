@@ -13,7 +13,7 @@ import (
 
 var (
 	fileDBFields = []string{
-		"id", "file_name", "hash", "file_size", "create_time", "down_key", "extra",
+		"id", "file_name", "hash", "file_size", "create_time", "down_key", "extra", "file_key",
 	}
 )
 
@@ -64,7 +64,7 @@ func (d *fileInfoDaoImpl) ListFile(ctx context.Context, req *model.ListFileReque
 		item := &model.FileItem{}
 		if err := rows.Scan(&item.Id, &item.FileName,
 			&item.Hash, &item.FileSize, &item.CreateTime,
-			&item.DownKey, &item.Extra); err != nil {
+			&item.DownKey, &item.Extra, &item.FileKey); err != nil {
 			return nil, errs.Wrap(errs.ErrDatabase, "scan fail", err)
 		}
 		rs = append(rs, item)
@@ -78,7 +78,7 @@ func (d *fileInfoDaoImpl) ListFile(ctx context.Context, req *model.ListFileReque
 func (d *fileInfoDaoImpl) GetFile(ctx context.Context, req *model.GetFileRequest) (*model.GetFileResponse, bool, error) {
 	listReq := &model.ListFileRequest{
 		Query: &model.ListFileQuery{
-			DownKey: []string{req.DownKey},
+			DownKey: []uint64{req.DownKey},
 		},
 		Offset: 0,
 		Limit:  1,
@@ -102,6 +102,7 @@ func (d *fileInfoDaoImpl) CreateFile(ctx context.Context, req *model.CreateFileR
 			"create_time": req.Item.CreateTime,
 			"down_key":    req.Item.DownKey,
 			"extra":       req.Item.Extra,
+			"file_key":    req.Item.FileKey,
 		},
 	}
 	sql, args, err := builder.BuildInsertIgnore(d.Table(), data)

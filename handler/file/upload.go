@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/errs"
+	"github.com/xxxsen/common/idgen"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -48,20 +49,21 @@ func FileUpload(ctx *gin.Context, request interface{}) (int, errs.IError, interf
 	if err != nil {
 		return http.StatusOK, errs.Wrap(errs.ErrStorage, "upload file fail", err), nil
 	}
-
+	fileid := idgen.NextId()
 	if _, err := dao.FileInfoDao.CreateFile(ctx, &model.CreateFileRequest{
 		Item: &model.FileItem{
 			FileName:   header.Filename,
 			Hash:       md5,
 			FileSize:   uint64(header.Size),
 			CreateTime: uint64(time.Now().UnixMilli()),
-			DownKey:    rsp.Key,
+			DownKey:    fileid,
+			FileKey:    rsp.Key,
 			Extra:      rsp.Extra,
 		},
 	}); err != nil {
 		return http.StatusOK, errs.Wrap(errs.ErrDatabase, "insert image to db fail", err), nil
 	}
 	return http.StatusOK, nil, &fileinfo.FileUploadResponse{
-		DownKey: proto.String(rsp.Key),
+		DownKey: proto.Uint64(fileid),
 	}
 }

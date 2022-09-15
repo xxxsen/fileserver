@@ -4,7 +4,8 @@ create table file_info_tab (
     hash char(32) not null,
     file_size bigint unsigned not null, 
     create_time bigint unsigned not null,
-    down_key varchar(64) not null,
+    down_key bigint unsigned not null,
+    file_key varchar(128) not null,
     extra blob not null,
     primary key(id),
     unique key idx_downkey(down_key)
