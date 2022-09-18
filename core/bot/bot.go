@@ -20,8 +20,6 @@ import (
 	"github.com/google/uuid"
 	lru "github.com/hnlq715/golang-lru"
 	"github.com/xxxsen/common/errs"
-	"github.com/xxxsen/common/logutil"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -58,31 +56,12 @@ func New(opts ...Option) (*TGBot, error) {
 	return &TGBot{c: c, metaCache: metaCache, bot: botClient}, nil
 }
 
-func asyncUpdate(chatid int64, bot *tgbotapi.BotAPI) error {
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
-
-	updates := bot.GetUpdatesChan(u)
-	for update := range updates {
-		logutil.GetLogger(context.Background()).With(zap.Int64("userid", chatid), zap.Int64("senderid", update.Message.Chat.ID),
-			zap.String("message", update.Message.Text)).
-			Info("recv message from remote")
-	}
-	return nil
-}
-
 func newBotClient(chatid int64, token string) (*tgbotapi.BotAPI, error) {
 	//parse config
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrServiceInternal, "init bot fail", err)
 	}
-	go func() {
-		err := asyncUpdate(chatid, bot)
-		if err != nil {
-			logutil.GetLogger(context.Background()).With(zap.Error(err)).Error("async update bot fail")
-		}
-	}()
 	return bot, nil
 }
 
