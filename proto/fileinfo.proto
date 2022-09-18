@@ -73,3 +73,9 @@ message BotUploadContext {
     optional int64 block_size = 2; //
     repeated string blocks = 3; //
 }
+
+message PartPair {
+    optional int32 part_id = 1; //
+    optional string part_key = 2; //
+    optional int64 part_size = 3; //
+}

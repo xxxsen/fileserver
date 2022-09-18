@@ -9,6 +9,18 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func EncodePartPair(pctx *fileinfo.PartPair) ([]byte, error) {
+	return encodeMessageRaw(pctx)
+}
+
+func DecodePartPair(raw []byte) (*fileinfo.PartPair, error) {
+	ctx := &fileinfo.PartPair{}
+	if err := decodeMessageRaw(raw, ctx); err != nil {
+		return nil, err
+	}
+	return ctx, nil
+}
+
 func EncodeBotUploadContext(bctx *fileinfo.BotUploadContext) ([]byte, error) {
 	return encodeMessageRaw(bctx)
 }

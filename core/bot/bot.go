@@ -3,6 +3,7 @@ package bot
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"fileserver/core"
 	"fileserver/proto/fileserver/fileinfo"
@@ -11,6 +12,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
@@ -28,8 +30,9 @@ type TGBot struct {
 }
 
 const (
-	defaultMaxTGBotFileSize   = 4 * 1024 * 1024 * 1024
-	defaultTGBotFileBlockSize = 20 * 1024 * 1024
+	defaultMaxTGBotFileSize    = 4 * 1024 * 1024 * 1024
+	defaultTGBotFileBlockSize  = 20 * 1024 * 1024
+	defaultPartDataStoreLength = 128
 )
 
 func New(opts ...Option) (*TGBot, error) {
@@ -135,19 +138,7 @@ func (c *TGBot) multipartFileUpload(ctx context.Context, uctx *core.FileUploadRe
 		}
 		blklist = append(blklist, fid)
 	}
-	filectx := &fileinfo.BotUploadContext{
-		FileSize:  proto.Int64(uctx.Size),
-		BlockSize: proto.Int64(c.BlockSize()),
-		Blocks:    blklist,
-	}
-	raw, err := utils.EncodeBotUploadContext(filectx)
-	if err != nil {
-		return "", errs.Wrap(errs.ErrMarshal, "encode upload ctx fail", err)
-	}
-	fid, _, err := c.uploadOne(ctx, bytes.NewReader(raw), int64(len(raw)))
-	if err != nil {
-		fid, _, err = c.uploadOne(ctx, bytes.NewReader(raw), int64(len(raw)))
-	}
+	fid, err := c.writeMultiPartToBot(ctx, uint64(uctx.Size), uint32(c.BlockSize()), blklist)
 	if err != nil {
 		return "", errs.Wrap(errs.ErrIO, "save multipart context fail", err)
 	}
@@ -249,17 +240,208 @@ func (c *TGBot) FileDownload(ctx context.Context, fctx *core.FileDownloadRequest
 	return &core.FileDownloadResponse{Reader: r}, nil
 }
 
+func (c *TGBot) buildTmpDir(xfid string) string {
+	return c.c.tmpdir + string(filepath.Separator) + "tgbot_upload" + string(filepath.Separator) + xfid
+}
+
 func (c *TGBot) BeginFileUpload(ctx context.Context, fctx *core.BeginFileUploadRequest) (*core.BeginFileUploadResponse, error) {
-	//TODO:
-	panic(1)
+	xfid := uuid.NewString()
+	if err := os.MkdirAll(c.buildTmpDir(xfid), os.ModeDir|os.ModePerm); err != nil {
+		return nil, errs.Wrap(errs.ErrServiceInternal, "make dir fail", err)
+	}
+	upid, err := utils.EncodeUploadID(&fileinfo.UploadIdCtx{
+		FileSize:  proto.Uint64(uint64(fctx.FileSize)),
+		FileKey:   proto.String(xfid),
+		BlockSize: proto.Uint32(uint32(c.BlockSize())),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &core.BeginFileUploadResponse{UploadID: upid}, nil
+}
+
+func (c *TGBot) isExistFile(file string) (bool, error) {
+	_, err := os.Stat(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (c *TGBot) storePartInfo(dir string, partid int, partkey string, partsize int64) error {
+	raw, err := utils.EncodePartPair(&fileinfo.PartPair{
+		PartId:   proto.Int32(int32(partid)),
+		PartKey:  proto.String(partkey),
+		PartSize: proto.Int64(partsize),
+	})
+	if err != nil {
+		return errs.Wrap(errs.ErrMarshal, "encode pb fail", err)
+	}
+	if len(raw) > defaultPartDataStoreLength {
+		return fmt.Errorf("part data too long, size:%d", len(raw))
+	}
+	blockdata := make([]byte, defaultPartDataStoreLength)
+	binary.BigEndian.PutUint16(blockdata, uint16(len(raw)))
+	copy(blockdata[2:], raw)
+	filename := fmt.Sprintf("%s%sdata", dir, string(filepath.Separator))
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	pos := int64(partid * defaultPartDataStoreLength)
+	if _, err := f.WriteAt(blockdata, pos); err != nil {
+		return errs.Wrap(errs.ErrIO, "write block data fail", err)
+	}
+	return nil
 }
 
 func (c *TGBot) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadRequest) (*core.PartFileUploadResponse, error) {
-	//TODO:
-	panic(1)
+	uctx, err := utils.DecodeUploadID(pctx.UploadId)
+	if err != nil {
+		return nil, err
+	}
+	bkcnt := utils.CalcFileBlockCount(uctx.GetFileSize(), uint64(uctx.GetBlockSize()))
+	if pctx.PartId == 0 || pctx.PartId > uint64(bkcnt) {
+		return nil, errs.New(errs.ErrParam, "invalid partid:%d", pctx.PartId)
+	}
+	if pctx.PartId != uint64(bkcnt) && pctx.Size != int64(uctx.GetBlockSize()) {
+		return nil, errs.New(errs.ErrParam, "invalid part size, partid:%d, blksize:%d", pctx.PartId, uctx.GetBlockSize())
+	}
+	if pctx.Size == 0 {
+		return nil, errs.New(errs.ErrParam, "empty size")
+	}
+	dir := c.buildTmpDir(uctx.GetFileKey())
+	exist, err := c.isExistFile(dir)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "check upload folder fail", err)
+	}
+	if !exist {
+		return nil, errs.New(errs.ErrNotFound, "upload id not found")
+	}
+	fileid, ck, err := c.uploadOne(ctx, pctx.ReadSeeker, pctx.Size)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "upload part file fail", err)
+	}
+	if len(pctx.MD5) > 0 && pctx.MD5 != ck {
+		return nil, errs.New(errs.ErrParam, "checksum not match, get:%d, real:%d", pctx.MD5, ck)
+	}
+	if err := c.storePartInfo(dir, int(pctx.PartId), fileid, pctx.Size); err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "store partinfo to disk fail", err)
+	}
+	return &core.PartFileUploadResponse{}, nil
+}
+
+func (c *TGBot) readStorePartInfo(dir string) ([]*fileinfo.PartPair, error) {
+	filename := fmt.Sprintf("%s%sdata", dir, string(filepath.Separator))
+	exist, err := c.isExistFile(filename)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "check part info fail", err)
+	}
+	if !exist {
+		return nil, errs.New(errs.ErrParam, "part info not found")
+	}
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "read part info fail", err)
+	}
+	if len(data)%defaultPartDataStoreLength != 0 {
+		return nil, errs.New(errs.ErrParam, "invalid part info, size:%d", len(data))
+	}
+	blkcount := utils.CalcFileBlockCount(uint64(len(data)), defaultPartDataStoreLength) - 1 //first block is an empty block
+	rs := make([]*fileinfo.PartPair, 0, blkcount)
+	for i := 0; i < blkcount; i++ {
+		partid := i + 1
+		start := partid * defaultPartDataStoreLength
+		part := data[start : start+defaultPartDataStoreLength]
+		length := binary.BigEndian.Uint16(part)
+		if length == 0 {
+			return nil, errs.New(errs.ErrParam, "invalid part, partid:%d", partid)
+		}
+
+		realdata := part[2 : 2+length]
+		pair, err := utils.DecodePartPair(realdata)
+		if err != nil {
+			return nil, errs.Wrap(errs.ErrUnknown, "decode part info fail", err)
+		}
+		if int(pair.GetPartId()) != i+1 {
+			return nil, errs.New(errs.ErrParam, "partid not at its real loc, data partid:%d, partid:%d", partid, pair.GetPartId())
+		}
+		rs = append(rs, pair)
+	}
+	return rs, nil
 }
 
 func (c *TGBot) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUploadRequest) (*core.FinishFileUploadResponse, error) {
-	//TODO:
-	panic(1)
+	uctx, err := utils.DecodeUploadID(fctx.UploadId)
+	if err != nil {
+		return nil, err
+	}
+	dir := c.buildTmpDir(uctx.GetFileKey())
+	exist, err := c.isExistFile(dir)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "check upload folder fail", err)
+	}
+	if !exist {
+		return nil, errs.New(errs.ErrNotFound, "upload id not found")
+	}
+	parts, err := c.readStorePartInfo(dir)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "read store part info fail", err)
+	}
+	if len(parts) == 0 {
+		return nil, errs.New(errs.ErrParam, "no file part found")
+	}
+	var calcSize int64
+	blks := make([]string, 0, len(parts))
+	for _, item := range parts {
+		calcSize += item.GetPartSize()
+		blks = append(blks, item.GetPartKey())
+	}
+	if calcSize != int64(uctx.GetFileSize()) {
+		return nil, errs.New(errs.ErrParam, "file size not match, calc:%d, uctx:%d", calcSize, uctx.GetFileSize())
+	}
+	filekey := parts[0].GetPartKey()
+	filetype := fileinfo.BotConstants_BOT_FILE_TYPE_SINGLE
+	if len(parts) > 0 {
+		filetype = fileinfo.BotConstants_BOT_FILE_TYPE_MULTIPART
+		filekey, err = c.writeMultiPartToBot(ctx, uctx.GetFileSize(), uctx.GetBlockSize(), blks)
+		if err != nil {
+			return nil, errs.Wrap(errs.ErrIO, "save parts to bot fail", err)
+		}
+	}
+	extra, err := utils.EncodeBotFileExtra(&fileinfo.BotFileExtra{
+		ChatId:    proto.Int64(c.c.chatid),
+		FileType:  proto.Int32(int32(filetype)),
+		BlockSize: proto.Int64(int64(uctx.GetBlockSize())),
+		FileSize:  proto.Int64(int64(uctx.GetFileSize())),
+	})
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrMarshal, "encode file extra fail", err)
+	}
+	_ = os.RemoveAll(dir)
+	return &core.FinishFileUploadResponse{
+		Key:      filekey,
+		Extra:    extra,
+		FileSize: int64(uctx.GetFileSize()),
+	}, nil
+}
+
+func (c *TGBot) writeMultiPartToBot(ctx context.Context, filesize uint64, blksize uint32, blks []string) (string, error) {
+	filemeta, err := utils.EncodeBotUploadContext(&fileinfo.BotUploadContext{
+		FileSize:  proto.Int64(int64(filesize)),
+		BlockSize: proto.Int64(int64(blksize)),
+		Blocks:    blks,
+	})
+	if err != nil {
+		return "", errs.Wrap(errs.ErrMarshal, "encode bot upload ctx fail", err)
+	}
+	fileid, _, err := c.uploadOne(ctx, bytes.NewReader(filemeta), int64(len(filemeta)))
+	if err != nil {
+		return "", errs.Wrap(errs.ErrIO, "save multi part meta fail", err)
+	}
+	return fileid, nil
 }

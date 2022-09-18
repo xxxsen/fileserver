@@ -797,6 +797,69 @@ func (x *BotUploadContext) GetBlocks() []string {
 	return nil
 }
 
+type PartPair struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PartId   *int32  `protobuf:"varint,1,opt,name=part_id,json=partId" json:"part_id,omitempty"`       //
+	PartKey  *string `protobuf:"bytes,2,opt,name=part_key,json=partKey" json:"part_key,omitempty"`     //
+	PartSize *int64  `protobuf:"varint,3,opt,name=part_size,json=partSize" json:"part_size,omitempty"` //
+}
+
+func (x *PartPair) Reset() {
+	*x = PartPair{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_fileinfo_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PartPair) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PartPair) ProtoMessage() {}
+
+func (x *PartPair) ProtoReflect() protoreflect.Message {
+	mi := &file_fileinfo_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PartPair.ProtoReflect.Descriptor instead.
+func (*PartPair) Descriptor() ([]byte, []int) {
+	return file_fileinfo_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *PartPair) GetPartId() int32 {
+	if x != nil && x.PartId != nil {
+		return *x.PartId
+	}
+	return 0
+}
+
+func (x *PartPair) GetPartKey() string {
+	if x != nil && x.PartKey != nil {
+		return *x.PartKey
+	}
+	return ""
+}
+
+func (x *PartPair) GetPartSize() int64 {
+	if x != nil && x.PartSize != nil {
+		return *x.PartSize
+	}
+	return 0
+}
+
 var File_fileinfo_proto protoreflect.FileDescriptor
 
 var file_fileinfo_proto_rawDesc = []byte{
@@ -871,8 +934,14 @@ var file_fileinfo_proto_rawDesc = []byte{
 	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03,
 	0x52, 0x09, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x53, 0x69, 0x7a, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x62,
 	0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x09, 0x52, 0x06, 0x62, 0x6c, 0x6f,
-	0x63, 0x6b, 0x73, 0x42, 0x15, 0x5a, 0x13, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x65, 0x72, 0x76, 0x65,
-	0x72, 0x2f, 0x66, 0x69, 0x6c, 0x65, 0x69, 0x6e, 0x66, 0x6f,
+	0x63, 0x6b, 0x73, 0x22, 0x5b, 0x0a, 0x08, 0x50, 0x61, 0x72, 0x74, 0x50, 0x61, 0x69, 0x72, 0x12,
+	0x17, 0x0a, 0x07, 0x70, 0x61, 0x72, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05,
+	0x52, 0x06, 0x70, 0x61, 0x72, 0x74, 0x49, 0x64, 0x12, 0x19, 0x0a, 0x08, 0x70, 0x61, 0x72, 0x74,
+	0x5f, 0x6b, 0x65, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x70, 0x61, 0x72, 0x74,
+	0x4b, 0x65, 0x79, 0x12, 0x1b, 0x0a, 0x09, 0x70, 0x61, 0x72, 0x74, 0x5f, 0x73, 0x69, 0x7a, 0x65,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x03, 0x52, 0x08, 0x70, 0x61, 0x72, 0x74, 0x53, 0x69, 0x7a, 0x65,
+	0x42, 0x15, 0x5a, 0x13, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2f, 0x66,
+	0x69, 0x6c, 0x65, 0x69, 0x6e, 0x66, 0x6f,
 }
 
 var (
@@ -888,7 +957,7 @@ func file_fileinfo_proto_rawDescGZIP() []byte {
 }
 
 var file_fileinfo_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_fileinfo_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_fileinfo_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_fileinfo_proto_goTypes = []interface{}{
 	(BotConstants_BotFileType)(0),   // 0: gameinfo.BotConstants.BotFileType
 	(*BotConstants)(nil),            // 1: gameinfo.BotConstants
@@ -904,6 +973,7 @@ var file_fileinfo_proto_goTypes = []interface{}{
 	(*GetFileMetaResponse)(nil),     // 11: gameinfo.GetFileMetaResponse
 	(*BotFileExtra)(nil),            // 12: gameinfo.BotFileExtra
 	(*BotUploadContext)(nil),        // 13: gameinfo.BotUploadContext
+	(*PartPair)(nil),                // 14: gameinfo.PartPair
 }
 var file_fileinfo_proto_depIdxs = []int32{
 	10, // 0: gameinfo.GetFileMetaResponse.list:type_name -> gameinfo.FileItem
@@ -1076,6 +1146,18 @@ func file_fileinfo_proto_init() {
 				return nil
 			}
 		}
+		file_fileinfo_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*PartPair); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1083,7 +1165,7 @@ func file_fileinfo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_fileinfo_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   13,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
