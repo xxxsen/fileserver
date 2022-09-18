@@ -19,7 +19,7 @@ import (
 
 type BasicFileUploadRequest struct {
 	File *multipart.FileHeader `form:"file" binding:"required"`
-	MD5  string                `form:"md5" binding:"required"`
+	MD5  string                `form:"md5"`
 }
 
 var ImageUpload = FileUpload

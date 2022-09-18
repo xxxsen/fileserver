@@ -126,8 +126,9 @@ func (c *TGBot) singleFileUpload(ctx context.Context, uctx *core.FileUploadReque
 func (c *TGBot) multipartFileUpload(ctx context.Context, uctx *core.FileUploadRequest) (string, error) {
 	blkcount := utils.CalcFileBlockCount(uint64(uctx.Size), uint64(c.BlockSize()))
 	blklist := make([]string, 0, blkcount)
+	md5reader := MD5Reader(uctx.ReadSeeker)
 	for i := 0; i < blkcount; i++ {
-		partreader := io.LimitReader(uctx.ReadSeeker, c.BlockSize())
+		partreader := io.LimitReader(md5reader, c.BlockSize())
 		blkidsz := utils.CalcBlockSize(uint64(uctx.Size), uint64(c.BlockSize()), i)
 		if blkidsz == 0 {
 			return "", errs.New(errs.ErrParam, "invalid blkidsize, id:%d, get:%d", i, blkidsz)
@@ -137,6 +138,9 @@ func (c *TGBot) multipartFileUpload(ctx context.Context, uctx *core.FileUploadRe
 			return "", errs.Wrap(errs.ErrIO, fmt.Sprintf("upload block fail, id:%d", i), err)
 		}
 		blklist = append(blklist, fid)
+	}
+	if len(uctx.MD5) > 0 && hex.EncodeToString(md5reader.GetSum()) != uctx.MD5 {
+		return "", errs.New(errs.ErrParam, "checksum not match, calc:%s, carry:%s", hex.EncodeToString(md5reader.GetSum()), uctx.MD5)
 	}
 	fid, err := c.writeMultiPartToBot(ctx, uint64(uctx.Size), uint32(c.BlockSize()), blklist)
 	if err != nil {
