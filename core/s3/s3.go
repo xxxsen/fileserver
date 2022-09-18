@@ -45,10 +45,15 @@ func (c *S3Core) MaxFileSize() int64 {
 
 func (c *S3Core) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*core.FileUploadResponse, error) {
 	xfid := uuid.NewString()
-	if err := c.c.client.Upload(ctx, xfid, uctx.ReadSeeker, uctx.Size, uctx.MD5); err != nil {
+	etag, err := c.c.client.Upload(ctx, xfid, uctx.ReadSeeker, uctx.Size, uctx.MD5)
+	if err != nil {
 		return nil, err
 	}
-	return &core.FileUploadResponse{Key: xfid}, nil
+	cks := etag
+	if len(uctx.MD5) > 0 {
+		cks = uctx.MD5
+	}
+	return &core.FileUploadResponse{Key: xfid, CheckSum: cks}, nil
 }
 
 func (c *S3Core) FileDownload(ctx context.Context, fctx *core.FileDownloadRequest) (*core.FileDownloadResponse, error) {
@@ -110,9 +115,10 @@ func (c *S3Core) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUplo
 	if err != nil {
 		return nil, err
 	}
-	if err := c.c.client.EndUpload(ctx, uctx.GetFileKey(), uctx.GetUploadId(),
-		utils.CalcFileBlockCount(uctx.GetFileSize(), uint64(uctx.GetBlockSize()))); err != nil {
+	cks, err := c.c.client.EndUpload(ctx, uctx.GetFileKey(), uctx.GetUploadId(),
+		utils.CalcFileBlockCount(uctx.GetFileSize(), uint64(uctx.GetBlockSize())))
+	if err != nil {
 		return nil, err
 	}
-	return &core.FinishFileUploadResponse{Key: uctx.GetFileKey(), FileSize: int64(uctx.GetFileSize())}, nil
+	return &core.FinishFileUploadResponse{Key: uctx.GetFileKey(), FileSize: int64(uctx.GetFileSize()), CheckSum: cks}, nil
 }

@@ -3,6 +3,7 @@ package bot
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
 	"encoding/binary"
 	"encoding/hex"
 	"fileserver/core"
@@ -13,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
@@ -32,7 +34,7 @@ type TGBot struct {
 const (
 	defaultMaxTGBotFileSize    = 4 * 1024 * 1024 * 1024
 	defaultTGBotFileBlockSize  = 20 * 1024 * 1024
-	defaultPartDataStoreLength = 128
+	defaultPartDataStoreLength = 160
 )
 
 func New(opts ...Option) (*TGBot, error) {
@@ -112,18 +114,18 @@ func (c *TGBot) uploadOne(ctx context.Context, r io.Reader, sz int64) (string, s
 	return msg.Document.FileID, hex.EncodeToString(mReader.GetSum()), nil
 }
 
-func (c *TGBot) singleFileUpload(ctx context.Context, uctx *core.FileUploadRequest) (string, error) {
+func (c *TGBot) singleFileUpload(ctx context.Context, uctx *core.FileUploadRequest) (string, string, error) {
 	fileid, ck, err := c.uploadOne(ctx, uctx.ReadSeeker, uctx.Size)
 	if err != nil {
-		return "", errs.Wrap(errs.ErrIO, "upload one part fail", err)
+		return "", "", errs.Wrap(errs.ErrIO, "upload one part fail", err)
 	}
 	if len(uctx.MD5) != 0 && ck != uctx.MD5 {
-		return "", errs.New(errs.ErrParam, "checksum not match, calc:%s, get:%s", ck, uctx.MD5)
+		return "", "", errs.New(errs.ErrParam, "checksum not match, calc:%s, get:%s", ck, uctx.MD5)
 	}
-	return fileid, nil
+	return fileid, ck, nil
 }
 
-func (c *TGBot) multipartFileUpload(ctx context.Context, uctx *core.FileUploadRequest) (string, error) {
+func (c *TGBot) multipartFileUpload(ctx context.Context, uctx *core.FileUploadRequest) (string, string, error) {
 	blkcount := utils.CalcFileBlockCount(uint64(uctx.Size), uint64(c.BlockSize()))
 	blklist := make([]string, 0, blkcount)
 	md5reader := MD5Reader(uctx.ReadSeeker)
@@ -131,22 +133,23 @@ func (c *TGBot) multipartFileUpload(ctx context.Context, uctx *core.FileUploadRe
 		partreader := io.LimitReader(md5reader, c.BlockSize())
 		blkidsz := utils.CalcBlockSize(uint64(uctx.Size), uint64(c.BlockSize()), i)
 		if blkidsz == 0 {
-			return "", errs.New(errs.ErrParam, "invalid blkidsize, id:%d, get:%d", i, blkidsz)
+			return "", "", errs.New(errs.ErrParam, "invalid blkidsize, id:%d, get:%d", i, blkidsz)
 		}
 		fid, _, err := c.uploadOne(ctx, partreader, int64(blkidsz))
 		if err != nil {
-			return "", errs.Wrap(errs.ErrIO, fmt.Sprintf("upload block fail, id:%d", i), err)
+			return "", "", errs.Wrap(errs.ErrIO, fmt.Sprintf("upload block fail, id:%d", i), err)
 		}
 		blklist = append(blklist, fid)
 	}
-	if len(uctx.MD5) > 0 && hex.EncodeToString(md5reader.GetSum()) != uctx.MD5 {
-		return "", errs.New(errs.ErrParam, "checksum not match, calc:%s, carry:%s", hex.EncodeToString(md5reader.GetSum()), uctx.MD5)
+	ck := hex.EncodeToString(md5reader.GetSum())
+	if len(uctx.MD5) > 0 && ck != uctx.MD5 {
+		return "", "", errs.New(errs.ErrParam, "checksum not match, calc:%s, carry:%s", ck, uctx.MD5)
 	}
 	fid, err := c.writeMultiPartToBot(ctx, uint64(uctx.Size), uint32(c.BlockSize()), blklist)
 	if err != nil {
-		return "", errs.Wrap(errs.ErrIO, "save multipart context fail", err)
+		return "", "", errs.Wrap(errs.ErrIO, "save multipart context fail", err)
 	}
-	return fid, nil
+	return fid, ck, nil
 }
 
 func (c *TGBot) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*core.FileUploadResponse, error) {
@@ -158,7 +161,7 @@ func (c *TGBot) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*
 		uploader = c.multipartFileUpload
 		filetype = int32(fileinfo.BotConstants_BOT_FILE_TYPE_MULTIPART)
 	}
-	fileid, err := uploader(ctx, uctx)
+	fileid, cksum, err := uploader(ctx, uctx)
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrIO, "upload file fail", err)
 	}
@@ -175,8 +178,9 @@ func (c *TGBot) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*
 		return nil, err
 	}
 	return &core.FileUploadResponse{
-		Key:   fileid,
-		Extra: extra,
+		Key:      fileid,
+		Extra:    extra,
+		CheckSum: cksum,
 	}, nil
 }
 
@@ -275,11 +279,12 @@ func (c *TGBot) isExistFile(file string) (bool, error) {
 	return true, nil
 }
 
-func (c *TGBot) storePartInfo(dir string, partid int, partkey string, partsize int64) error {
+func (c *TGBot) storePartInfo(dir string, partid int, partkey string, partsize int64, ck string) error {
 	raw, err := utils.EncodePartPair(&fileinfo.PartPair{
 		PartId:   proto.Int32(int32(partid)),
 		PartKey:  proto.String(partkey),
 		PartSize: proto.Int64(partsize),
+		Md5Value: proto.String(ck),
 	})
 	if err != nil {
 		return errs.Wrap(errs.ErrMarshal, "encode pb fail", err)
@@ -333,7 +338,7 @@ func (c *TGBot) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadReq
 	if len(pctx.MD5) > 0 && pctx.MD5 != ck {
 		return nil, errs.New(errs.ErrParam, "checksum not match, get:%d, real:%d", pctx.MD5, ck)
 	}
-	if err := c.storePartInfo(dir, int(pctx.PartId), fileid, pctx.Size); err != nil {
+	if err := c.storePartInfo(dir, int(pctx.PartId), fileid, pctx.Size, ck); err != nil {
 		return nil, errs.Wrap(errs.ErrIO, "store partinfo to disk fail", err)
 	}
 	return &core.PartFileUploadResponse{}, nil
@@ -401,9 +406,11 @@ func (c *TGBot) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUploa
 	}
 	var calcSize int64
 	blks := make([]string, 0, len(parts))
+	md5s := make([]string, 0, len(parts))
 	for _, item := range parts {
 		calcSize += item.GetPartSize()
 		blks = append(blks, item.GetPartKey())
+		md5s = append(md5s, item.GetMd5Value())
 	}
 	if calcSize != int64(uctx.GetFileSize()) {
 		return nil, errs.New(errs.ErrParam, "file size not match, calc:%d, uctx:%d", calcSize, uctx.GetFileSize())
@@ -417,6 +424,7 @@ func (c *TGBot) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUploa
 			return nil, errs.Wrap(errs.ErrIO, "save parts to bot fail", err)
 		}
 	}
+	cks := c.buildETag(md5s)
 	extra, err := utils.EncodeBotFileExtra(&fileinfo.BotFileExtra{
 		ChatId:    proto.Int64(c.c.chatid),
 		FileType:  proto.Int32(int32(filetype)),
@@ -427,11 +435,27 @@ func (c *TGBot) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUploa
 		return nil, errs.Wrap(errs.ErrMarshal, "encode file extra fail", err)
 	}
 	_ = os.RemoveAll(dir)
+
 	return &core.FinishFileUploadResponse{
 		Key:      filekey,
 		Extra:    extra,
 		FileSize: int64(uctx.GetFileSize()),
+		CheckSum: cks,
 	}, nil
+}
+
+func (c *TGBot) buildETag(md5s []string) string {
+	if len(md5s) == 0 {
+		return ""
+	}
+	if len(md5s) == 1 {
+		return md5s[0]
+	}
+	m := md5.New()
+	for _, item := range md5s {
+		m.Write([]byte(item))
+	}
+	return hex.EncodeToString(m.Sum(nil)) + "-" + strconv.FormatInt(int64(len(md5s)), 10)
 }
 
 func (c *TGBot) writeMultiPartToBot(ctx context.Context, filesize uint64, blksize uint32, blks []string) (string, error) {

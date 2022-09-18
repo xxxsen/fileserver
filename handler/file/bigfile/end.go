@@ -19,15 +19,14 @@ import (
 
 func End(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) {
 	req := request.(*fileinfo.FileUploadEndRequest)
-	if len(req.GetHash()) == 0 || len(req.GetFileName()) == 0 ||
+	if len(req.GetFileName()) == 0 ||
 		len(req.GetUploadCtx()) == 0 {
-		return http.StatusOK, errs.New(errs.ErrParam, "invalid hash/filename/uploadctx"), nil
+		return http.StatusOK, errs.New(errs.ErrParam, "invalid filename/uploadctx"), nil
 	}
 
 	fs := getter.MustGetFsClient(ctx)
 	rsp, err := fs.FinishFileUpload(ctx, &core.FinishFileUploadRequest{
 		UploadId: req.GetUploadCtx(),
-		FileMd5:  req.GetHash(),
 		FileName: req.GetFileName(),
 	})
 	if err != nil {
@@ -37,7 +36,7 @@ func End(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) 
 	_, err = dao.FileInfoDao.CreateFile(ctx, &model.CreateFileRequest{
 		Item: &model.FileItem{
 			FileName:   req.GetFileName(),
-			Hash:       req.GetHash(),
+			Hash:       rsp.CheckSum,
 			FileSize:   uint64(rsp.FileSize),
 			CreateTime: uint64(time.Now().UnixMilli()),
 			FileKey:    rsp.Key,

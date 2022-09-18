@@ -1,7 +1,7 @@
 create table file_info_tab (
     id bigint unsigned not null auto_increment,
     file_name varchar(256) not null,
-    hash char(32) not null,
+    hash varchar(40) not null,
     file_size bigint unsigned not null, 
     create_time bigint unsigned not null,
     down_key bigint unsigned not null,

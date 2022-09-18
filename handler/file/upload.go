@@ -52,9 +52,10 @@ func FileUpload(ctx *gin.Context, request interface{}) (int, errs.IError, interf
 	}
 	fileid := idgen.NextId()
 	if _, err := dao.FileInfoDao.CreateFile(ctx, &model.CreateFileRequest{
+		//TODO: write checksum here
 		Item: &model.FileItem{
 			FileName:   header.Filename,
-			Hash:       md5,
+			Hash:       rsp.CheckSum,
 			FileSize:   uint64(header.Size),
 			CreateTime: uint64(time.Now().UnixMilli()),
 			DownKey:    fileid,

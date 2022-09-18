@@ -12,8 +12,9 @@ type FileUploadRequest struct {
 }
 
 type FileUploadResponse struct {
-	Key   string
-	Extra []byte
+	Key      string
+	Extra    []byte
+	CheckSum string
 }
 
 type BeginFileUploadRequest struct {
@@ -37,7 +38,6 @@ type PartFileUploadResponse struct {
 
 type FinishFileUploadRequest struct {
 	UploadId string
-	FileMd5  string
 	FileName string
 }
 
@@ -45,6 +45,7 @@ type FinishFileUploadResponse struct {
 	Key      string
 	Extra    []byte
 	FileSize int64
+	CheckSum string
 }
 
 type FileDownloadRequest struct {
