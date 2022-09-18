@@ -5,6 +5,7 @@ type config struct {
 	token   string
 	fsize   int64
 	blksize int64
+	tmpdir  string
 }
 
 type Option func(c *config)
@@ -19,5 +20,11 @@ func WithSizeLimit(fsize int64, blksize int64) Option {
 	return func(c *config) {
 		c.fsize = fsize
 		c.blksize = blksize
+	}
+}
+
+func WithTmpDir(dir string) Option {
+	return func(c *config) {
+		c.tmpdir = dir
 	}
 }

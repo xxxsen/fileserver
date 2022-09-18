@@ -13,6 +13,7 @@ const (
 type botFileCtx struct {
 	ChatId   int64
 	FileType int64
+	BlkSize  int64
 }
 
 func encodeFileExtra(fc *botFileCtx) ([]byte, error) {

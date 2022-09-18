@@ -1,12 +1,16 @@
 package bot
 
 import (
+	"bytes"
 	"context"
+	"encoding/hex"
 	"fileserver/core"
+	"fileserver/proto/fileserver/fileinfo"
+	"fileserver/utils"
 	"fmt"
-	"net"
-	"net/http"
-	"time"
+	"io"
+	"io/ioutil"
+	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
@@ -14,13 +18,13 @@ import (
 	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/logutil"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 )
 
 type TGBot struct {
-	c        *config
-	bot      *tgbotapi.BotAPI
-	client   *http.Client
-	cacheLnk *lru.Cache
+	c         *config
+	bot       *tgbotapi.BotAPI
+	metaCache *lru.Cache
 }
 
 const (
@@ -32,6 +36,7 @@ func New(opts ...Option) (*TGBot, error) {
 	c := &config{
 		fsize:   defaultMaxTGBotFileSize,
 		blksize: defaultTGBotFileBlockSize,
+		tmpdir:  os.TempDir(),
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -43,21 +48,9 @@ func New(opts ...Option) (*TGBot, error) {
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrServiceInternal, "new bot client fail", err)
 	}
-	cacheLnk, _ := lru.New(20000)
+	metaCache, _ := lru.New(10000)
 
-	//init http client
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			Dial: (&net.Dialer{
-				Timeout:   10 * time.Second,
-				KeepAlive: 10 * time.Second,
-			}).Dial,
-			IdleConnTimeout: 20 * time.Second,
-			MaxIdleConns:    20,
-		},
-	}
-
-	return &TGBot{c: c, cacheLnk: cacheLnk, client: httpClient, bot: botClient}, nil
+	return &TGBot{c: c, metaCache: metaCache, bot: botClient}, nil
 }
 
 func asyncUpdate(chatid int64, bot *tgbotapi.BotAPI) error {
@@ -96,21 +89,89 @@ func (c *TGBot) MaxFileSize() int64 {
 	return c.c.fsize
 }
 
-func (c *TGBot) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*core.FileUploadResponse, error) {
+func (c *TGBot) uploadOne(ctx context.Context, r io.Reader, sz int64) (string, string, error) {
 	sname := uuid.NewString()
+	mReader := MD5Reader(r)
+	cReader := CountReader(mReader)
 	freader := tgbotapi.FileReader{
 		Name:   sname,
-		Reader: uctx.ReadSeeker,
+		Reader: cReader,
 	}
 	doc := tgbotapi.NewDocument(c.c.chatid, freader)
 	doc.DisableNotification = true
 	msg, err := c.bot.Send(doc)
 	if err != nil {
-		return nil, err
+		return "", "", errs.Wrap(errs.ErrIO, "send document fail", err)
 	}
-	extra, err := encodeFileExtra(&botFileCtx{
-		ChatId:   c.c.chatid,
-		FileType: fileTypeOneFile,
+	if int64(cReader.GetCount()) != sz {
+		return "", "", errs.New(errs.ErrIO, "send document size not match, write:%d, need:%d", cReader.GetCount(), sz)
+	}
+	return msg.Document.FileID, hex.EncodeToString(mReader.GetSum()), nil
+}
+
+func (c *TGBot) singleFileUpload(ctx context.Context, uctx *core.FileUploadRequest) (string, error) {
+	fileid, ck, err := c.uploadOne(ctx, uctx.ReadSeeker, uctx.Size)
+	if err != nil {
+		return "", errs.Wrap(errs.ErrIO, "upload one part fail", err)
+	}
+	if len(uctx.MD5) != 0 && ck != uctx.MD5 {
+		return "", errs.New(errs.ErrParam, "checksum not match, calc:%s, get:%s", ck, uctx.MD5)
+	}
+	return fileid, nil
+}
+
+func (c *TGBot) multipartFileUpload(ctx context.Context, uctx *core.FileUploadRequest) (string, error) {
+	blkcount := utils.CalcFileBlockCount(uint64(uctx.Size), uint64(c.BlockSize()))
+	blklist := make([]string, 0, blkcount)
+	for i := 0; i < blkcount; i++ {
+		partreader := io.LimitReader(uctx.ReadSeeker, c.BlockSize())
+		blkidsz := utils.CalcBlockSize(uint64(uctx.Size), uint64(c.BlockSize()), i)
+		if blkidsz == 0 {
+			return "", errs.New(errs.ErrParam, "invalid blkidsize, id:%d, get:%d", i, blkidsz)
+		}
+		fid, _, err := c.uploadOne(ctx, partreader, int64(blkidsz))
+		if err != nil {
+			return "", errs.Wrap(errs.ErrIO, fmt.Sprintf("upload block fail, id:%d", i), err)
+		}
+		blklist = append(blklist, fid)
+	}
+	filectx := &fileinfo.BotUploadContext{
+		FileSize:  proto.Int64(uctx.Size),
+		BlockSize: proto.Int64(c.BlockSize()),
+		Blocks:    blklist,
+	}
+	raw, err := utils.EncodeBotUploadContext(filectx)
+	if err != nil {
+		return "", errs.Wrap(errs.ErrMarshal, "encode upload ctx fail", err)
+	}
+	fid, _, err := c.uploadOne(ctx, bytes.NewReader(raw), int64(len(raw)))
+	if err != nil {
+		fid, _, err = c.uploadOne(ctx, bytes.NewReader(raw), int64(len(raw)))
+	}
+	if err != nil {
+		return "", errs.Wrap(errs.ErrIO, "save multipart context fail", err)
+	}
+	return fid, nil
+}
+
+func (c *TGBot) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*core.FileUploadResponse, error) {
+	var (
+		uploader       = c.singleFileUpload
+		filetype int32 = int32(fileinfo.BotConstants_BOT_FILE_TYPE_SINGLE)
+	)
+	if uctx.Size > c.BlockSize() {
+		uploader = c.multipartFileUpload
+		filetype = int32(fileinfo.BotConstants_BOT_FILE_TYPE_MULTIPART)
+	}
+	fileid, err := uploader(ctx, uctx)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "upload file fail", err)
+	}
+	extra, err := utils.EncodeBotFileExtra(&fileinfo.BotFileExtra{
+		ChatId:    proto.Int64(c.c.chatid),
+		FileType:  proto.Int32(filetype),
+		BlockSize: proto.Int64(c.BlockSize()),
+		FileSize:  proto.Int64(uctx.Size),
 	})
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrMarshal, "encode bot extra fail", err)
@@ -119,57 +180,73 @@ func (c *TGBot) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*
 		return nil, err
 	}
 	return &core.FileUploadResponse{
-		Key:   msg.Document.FileID,
+		Key:   fileid,
 		Extra: extra,
 	}, nil
-
 }
 
-func (c *TGBot) cacheGetURL(ctx context.Context, hash string) (string, error) {
-	if lnk, ok := c.cacheLnk.Get(hash); ok {
-		return lnk.(string), nil
-	}
+func (c *TGBot) singleFileDownload(ctx context.Context, key string, downat int64) (io.ReadCloser, error) {
+	return NewPartReader(ctx, c.bot, key, downat), nil
+}
 
-	cf := tgbotapi.FileConfig{FileID: hash}
-	f, err := c.bot.GetFile(cf)
-	if err != nil {
-		return "", err
+func (c *TGBot) getMultiblockMeta(ctx context.Context, fid string) (*fileinfo.BotUploadContext, error) {
+	if v, ok := c.metaCache.Get(fid); ok {
+		return v.(*fileinfo.BotUploadContext), nil
 	}
-	lnk := f.Link(c.bot.Token)
-	//这里应该能1小时有效的...
-	c.cacheLnk.AddEx(hash, lnk, 30*time.Minute)
-	return lnk, nil
+	r, err := c.singleFileDownload(ctx, fid, 0)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "get download meta fail", err)
+	}
+	defer r.Close()
+	raw, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "read meta data fail", err)
+	}
+	finfo, err := utils.DecodeBotUploadContext(raw)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrUnknown,
+			fmt.Sprintf("decode upload context fail, ctxdata:%s, ctxdata len:%d", hex.EncodeToString(raw), len(raw)),
+			err,
+		)
+	}
+	c.metaCache.Add(fid, finfo)
+	return finfo, nil
+}
+
+func (c *TGBot) multipartFileDownload(ctx context.Context, fctx *core.FileDownloadRequest) (io.ReadCloser, error) {
+	finfo, err := c.getMultiblockMeta(ctx, fctx.Key)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "get meta fail", err)
+	}
+	return NewMultipartReader(ctx, c.bot, &MultipartMeta{
+		StartAt:  fctx.StartAt,
+		FileSize: finfo.GetFileSize(),
+		BlkSize:  finfo.GetBlockSize(),
+		BlkList:  finfo.GetBlocks(),
+	}), nil
 }
 
 func (c *TGBot) FileDownload(ctx context.Context, fctx *core.FileDownloadRequest) (*core.FileDownloadResponse, error) {
-	//TODO: we need to check whether it is a part file
-	lnk, err := c.cacheGetURL(ctx, fctx.Key)
+	bctx, err := utils.DecodeBotFileExtra(fctx.Extra)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(errs.ErrUnmarshal, "decode bot file context fail", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, lnk, nil)
+	if bctx.GetChatId() != c.c.chatid {
+		return nil, errs.New(errs.ErrParam, "chatid not match, file chatid:%d, current chatid:%d", bctx.GetChatId(), c.c.chatid)
+	}
+	var r io.ReadCloser
+	switch bctx.GetFileType() {
+	case int32(fileinfo.BotConstants_BOT_FILE_TYPE_SINGLE):
+		r, err = c.singleFileDownload(ctx, fctx.Key, fctx.StartAt)
+	case int32(fileinfo.BotConstants_BOT_FILE_TYPE_MULTIPART):
+		r, err = c.multipartFileDownload(ctx, fctx)
+	default:
+		return nil, errs.New(errs.ErrParam, "not support file type:%d", bctx.GetFileType())
+	}
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(errs.ErrIO, "get file reader fail", err)
 	}
-	if fctx.StartAt != 0 {
-		rangeHeader := fmt.Sprintf("bytes=%d-", fctx.StartAt)
-		req.Header.Set("Range", rangeHeader)
-	}
-	rsp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	//caller should close rsp.Body
-	if rsp.StatusCode/100 != 2 {
-		rsp.Body.Close()
-		return nil, errs.New(errs.ErrServiceInternal, "status code not ok, code:%d", rsp.StatusCode)
-	}
-	if fctx.StartAt != 0 && len(rsp.Header.Get("Content-Range")) == 0 {
-		rsp.Body.Close()
-		return nil, errs.New(errs.ErrParam, "not support range")
-	}
-
-	return &core.FileDownloadResponse{Reader: rsp.Body}, nil
+	return &core.FileDownloadResponse{Reader: r}, nil
 }
 
 func (c *TGBot) BeginFileUpload(ctx context.Context, fctx *core.BeginFileUploadRequest) (*core.BeginFileUploadResponse, error) {

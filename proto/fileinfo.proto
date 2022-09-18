@@ -3,6 +3,13 @@ package gameinfo;
 
 option go_package = "fileserver/fileinfo";
 
+message BotConstants {
+    enum BotFileType {
+        BOT_FILE_TYPE_SINGLE = 1;  //
+        BOT_FILE_TYPE_MULTIPART = 2; //
+    }
+}
+
 message FileUploadResponse {
     optional string down_key = 1; //
 }
@@ -52,4 +59,17 @@ message FileItem {
 
 message GetFileMetaResponse {
     repeated FileItem list = 1; //
+}
+
+message BotFileExtra {
+    optional int64 chat_id = 1; //
+    optional int32 file_type = 2; //
+    optional int64 block_size = 3; //
+    optional int64 file_size = 4; //
+}
+
+message BotUploadContext {
+    optional int64 file_size = 1; //
+    optional int64 block_size = 2; //
+    repeated string blocks = 3; //
 }
