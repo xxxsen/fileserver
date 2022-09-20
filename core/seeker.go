@@ -8,6 +8,21 @@ import (
 	"github.com/xxxsen/common/errs"
 )
 
+//fakeReader 由于地层的reader并不是真的可以seek,
+// 很多场景下, seek_end只是为了获取文件大小, 所以, 我们可以产生一个假的seeker
+type fakeReader struct {
+}
+
+func (f *fakeReader) Read([]byte) (int, error) {
+	return 0, io.EOF
+}
+
+func (f *fakeReader) Close() error {
+	return nil
+}
+
+var defaultFakeReader = &fakeReader{}
+
 type SeekCore struct {
 	ctx    context.Context
 	c      IFsCore
@@ -32,6 +47,9 @@ func NewSeeker(ctx context.Context, c IFsCore, sz int64, key string, extra []byt
 }
 
 func (s *SeekCore) openStream(at int64) (io.ReadCloser, error) {
+	if at == s.fsz {
+		return defaultFakeReader, nil
+	}
 	rsp, err := s.c.FileDownload(s.ctx, &FileDownloadRequest{
 		Key:     s.key,
 		Extra:   s.extra,
@@ -69,6 +87,10 @@ func (s *SeekCore) Close() error {
 	if !s.isOpen {
 		return nil
 	}
+	if s.rc == nil {
+		return nil
+	}
+	s.isOpen = false
 	return s.rc.Close()
 }
 
@@ -89,13 +111,20 @@ func (s *SeekCore) Seek(offset int64, whence int) (ret int64, err error) {
 	if !s.isOpen {
 		return 0, fmt.Errorf("file not in open state")
 	}
-	_ = s.rc.Close()
+	if s.rc != nil {
+		_ = s.rc.Close()
+	}
 	cur := s.calcOffset(offset, whence)
 	if cur < 0 {
 		return 0, errs.New(errs.ErrParam, "invalid offset, cur:%d", cur)
 	}
 	if cur > s.fsz {
 		return s.fsz, errs.New(errs.ErrParam, "seek over file size, cur:%d, fsz:%d", cur, s.fsz)
+	}
+	if cur == 0 { //对于cur == 0的, 延迟到Read的时候才打开流。
+		s.rc = nil
+		s.cur = 0
+		return 0, nil
 	}
 	rc, err := s.openStream(cur)
 	if err != nil {
