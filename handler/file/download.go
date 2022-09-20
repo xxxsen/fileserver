@@ -22,10 +22,43 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	miniEnableRangeDownloadSize = 200 * 1024 * 1024
+)
+
 var fileCache, _ = cache.NewLocalCache(20000)
 
 type BasicFileDownloadRequest struct {
 	DownKey string `form:"down_key" binding:"required"`
+}
+
+func streamDownload(ctx *gin.Context, downKey uint64, fs core.IFsCore, fileinfo *model.FileItem) (int, errs.IError, interface{}) {
+	rsp, err := fs.FileDownload(ctx, &core.FileDownloadRequest{
+		Key:     fileinfo.FileKey,
+		Extra:   fileinfo.Extra,
+		StartAt: 0,
+	})
+	if err != nil {
+		return http.StatusOK, errs.Wrap(errs.ErrS3, "create download stream fail", err), nil
+	}
+	defer rsp.Reader.Close()
+	contentType := mime.TypeByExtension(filepath.Ext(fileinfo.FileName))
+	writer := ctx.Writer
+	writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", strconv.Quote(fileinfo.FileName)))
+	writer.Header().Set("Content-Length", fmt.Sprintf("%d", fileinfo.FileSize))
+	writer.Header().Set("Content-Type", contentType)
+	sz, err := io.Copy(writer, rsp.Reader)
+	if err != nil {
+		logutil.GetLogger(ctx).With(zap.Error(err), zap.Uint64("key", downKey)).Error("copy stream fail")
+		return http.StatusOK, nil, nil
+	}
+	if sz != int64(fileinfo.FileSize) {
+		logutil.GetLogger(ctx).With(zap.Error(err),
+			zap.Uint64("key", downKey), zap.Uint64("need_size", fileinfo.FileSize),
+			zap.Int64("write_size", sz)).Error("io size not match")
+		return http.StatusOK, nil, nil
+	}
+	return http.StatusOK, nil, nil
 }
 
 func FileDownload(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) {
@@ -55,34 +88,15 @@ func FileDownload(ctx *gin.Context, request interface{}) (int, errs.IError, inte
 		return http.StatusOK, errs.New(errs.ErrNotFound, "not found file meta"), nil
 	}
 	fileinfo := ifileinfo.(*model.FileItem)
-
 	fs := getter.MustGetFsClient(ctx)
 
-	rsp, err := fs.FileDownload(ctx, &core.FileDownloadRequest{
-		Key:     fileinfo.FileKey,
-		Extra:   fileinfo.Extra,
-		StartAt: 0,
-	})
-	if err != nil {
-		return http.StatusOK, errs.Wrap(errs.ErrS3, "create download stream fail", err), nil
+	if r := ctx.GetHeader("range"); len(r) == 0 || fileinfo.FileSize < miniEnableRangeDownloadSize { //filesize < 200MB will not enable range download
+		return streamDownload(ctx, downKey, fs, fileinfo)
 	}
-	defer rsp.Reader.Close()
-	contentType := mime.TypeByExtension(filepath.Ext(fileinfo.FileName))
-	writer := ctx.Writer
-	writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", strconv.Quote(fileinfo.FileName)))
-	writer.Header().Set("Content-Length", fmt.Sprintf("%d", fileinfo.FileSize))
-	writer.Header().Set("Content-Type", contentType)
-	sz, err := io.Copy(ctx.Writer, rsp.Reader)
-	if err != nil {
-		logutil.GetLogger(ctx).With(zap.Error(err), zap.Uint64("key", downKey)).Error("copy stream fail")
-		return http.StatusOK, nil, nil
-	}
-	if sz != int64(fileinfo.FileSize) {
-		logutil.GetLogger(ctx).With(zap.Error(err),
-			zap.Uint64("key", downKey), zap.Uint64("need_size", fileinfo.FileSize),
-			zap.Int64("write_size", sz)).Error("io size not match")
-		return http.StatusOK, nil, nil
-	}
+
+	file := core.NewSeeker(ctx, fs, int64(fileinfo.FileSize), fileinfo.FileKey, fileinfo.Extra)
+	defer file.Close()
+	http.ServeContent(ctx.Writer, ctx.Request, strconv.Quote(fileinfo.FileName), time.Unix(int64(fileinfo.CreateTime), 0), file)
 	return http.StatusOK, nil, nil
 }
 
