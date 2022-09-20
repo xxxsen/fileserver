@@ -29,7 +29,7 @@ type SeekCore struct {
 	key    string
 	extra  []byte
 	rc     io.ReadCloser
-	cur    int //for recording current read pos
+	cur    int64 //for recording current read pos
 	isOpen bool
 	fsz    int64
 }
@@ -75,7 +75,7 @@ func (s *SeekCore) Read(b []byte) (int, error) {
 
 	cnt, err := s.rc.Read(b)
 	if cnt > 0 {
-		s.cur += cnt
+		s.cur += int64(cnt)
 	}
 	if err != nil {
 		return cnt, err
@@ -131,6 +131,6 @@ func (s *SeekCore) Seek(offset int64, whence int) (ret int64, err error) {
 		return 0, errs.Wrap(errs.ErrIO, "open stream fail", err)
 	}
 	s.rc = rc
-	s.cur = int(cur)
+	s.cur = cur
 	return cur, nil
 }
