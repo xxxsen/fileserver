@@ -8,7 +8,7 @@ import (
 	"github.com/xxxsen/common/errs"
 )
 
-//fakeReader 由于地层的reader并不是真的可以seek,
+//fakeReader 由于底层的reader并不是真的可以seek,
 // 很多场景下, seek_end只是为了获取文件大小, 所以, 我们可以产生一个假的seeker
 type fakeReader struct {
 }
