@@ -13,6 +13,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/xxxsen/common v0.0.8
 	go.uber.org/zap v1.23.0
+	golang.org/x/sync v0.0.0-20220907140024-f12130a52804
 	google.golang.org/protobuf v1.28.0
 )
 
