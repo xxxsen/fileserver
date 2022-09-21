@@ -7,6 +7,7 @@ create table file_info_tab (
     down_key bigint unsigned not null,
     file_key varchar(128) not null,
     extra blob not null,
+    st_type tinyint not null,
     primary key(id),
     unique key idx_downkey(down_key)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4;

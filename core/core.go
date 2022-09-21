@@ -59,6 +59,7 @@ type FileDownloadResponse struct {
 }
 
 type IFsCore interface {
+	StType() uint8
 	BlockSize() int64
 	MaxFileSize() int64
 	FileUpload(ctx context.Context, uctx *FileUploadRequest) (*FileUploadResponse, error)

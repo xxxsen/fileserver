@@ -20,6 +20,7 @@ type FileItem struct {
 	DownKey    uint64
 	Extra      []byte
 	FileKey    string
+	StType     uint8
 }
 
 type GetFileResponse struct {

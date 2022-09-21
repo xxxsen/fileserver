@@ -52,7 +52,6 @@ func FileUpload(ctx *gin.Context, request interface{}) (int, errs.IError, interf
 	}
 	fileid := idgen.NextId()
 	if _, err := dao.FileInfoDao.CreateFile(ctx, &model.CreateFileRequest{
-		//TODO: write checksum here
 		Item: &model.FileItem{
 			FileName:   header.Filename,
 			Hash:       rsp.CheckSum,
@@ -61,6 +60,7 @@ func FileUpload(ctx *gin.Context, request interface{}) (int, errs.IError, interf
 			DownKey:    fileid,
 			FileKey:    rsp.Key,
 			Extra:      rsp.Extra,
+			StType:     fs.StType(),
 		},
 	}); err != nil {
 		return http.StatusOK, errs.Wrap(errs.ErrDatabase, "insert image to db fail", err), nil

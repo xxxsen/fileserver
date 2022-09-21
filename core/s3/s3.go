@@ -43,6 +43,10 @@ func (c *S3Core) MaxFileSize() int64 {
 	return defaultMaxS3FileSize
 }
 
+func (c *S3Core) StType() uint8 {
+	return core.StTypeS3
+}
+
 func (c *S3Core) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*core.FileUploadResponse, error) {
 	xfid := uuid.NewString()
 	etag, err := c.c.client.Upload(ctx, xfid, uctx.ReadSeeker, uctx.Size, uctx.MD5)

@@ -42,6 +42,7 @@ func End(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) 
 			FileKey:    rsp.Key,
 			Extra:      rsp.Extra,
 			DownKey:    fileid,
+			StType:     fs.StType(),
 		},
 	})
 	if err != nil {

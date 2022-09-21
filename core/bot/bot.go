@@ -73,6 +73,10 @@ func (c *TGBot) MaxFileSize() int64 {
 	return c.c.fsize
 }
 
+func (c *TGBot) StType() uint8 {
+	return core.StTypeTGBot
+}
+
 func (c *TGBot) uploadOne(ctx context.Context, r io.Reader, sz int64) (string, string, error) {
 	sname := uuid.NewString()
 	mReader := MD5Reader(r)
