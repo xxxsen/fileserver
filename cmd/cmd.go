@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fileserver/config"
 	"fileserver/constants"
 	"fileserver/core"
@@ -9,11 +10,14 @@ import (
 	"fileserver/db"
 	"fileserver/handler"
 	"flag"
+	"fmt"
 	"strings"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/idgen"
 	"github.com/xxxsen/common/logger"
+	"github.com/xxxsen/common/logutil"
 	"github.com/xxxsen/common/naivesvr"
 	s3c "github.com/xxxsen/common/s3"
 	"go.uber.org/zap"
@@ -56,32 +60,83 @@ func main() {
 }
 
 func initStorage(c *config.Config) (core.IFsCore, error) {
-	switch strings.ToLower(c.StorageType) {
-	case "s3":
-		client, err := s3c.New(
-			s3c.WithEndpoint(c.S3Info.Endpoint),
-			s3c.WithSSL(c.S3Info.UseSSL),
-			s3c.WithSecret(c.S3Info.SecretId, c.S3Info.SecretKey),
-			s3c.WithBucket(c.S3Info.Bucket),
-		)
-		if err != nil {
-			return nil, errs.Wrap(errs.ErrStorage, "init s3 fail", err)
+	names := make([]string, 0, len(c.FsInfo))
+	var uploader core.IFsCore
+	downloaders := make([]core.IFsCore, 0, len(c.FsInfo))
+	uploadfsname := strings.ToLower(c.UploadFs)
+	for name, param := range c.FsInfo {
+		var c core.IFsCore
+		var err error
+		name := strings.ToLower(name)
+		switch name {
+		case "s3":
+			c, err = initS3Core(param)
+		case "tgbot":
+			c, err = initTGBotCore(param)
 		}
-		s3core, err := s3.New(
-			s3.WithS3Client(client),
-		)
 		if err != nil {
-			return nil, errs.Wrap(errs.ErrStorage, "init s3 core fail", err)
+			return nil, errs.Wrap(errs.ErrStorage, fmt.Sprintf("init core:%s fail", name), err)
 		}
-		return s3core, nil
-	case "tgbot":
-		botcore, err := bot.New(
-			bot.WithAuth(int64(c.BotInfo.Chatid), c.BotInfo.Token),
-		)
-		if err != nil {
-			return nil, errs.Wrap(errs.ErrStorage, "init tg bot fail", err)
+		names = append(names, name)
+		downloaders = append(downloaders, c)
+		if name == uploadfsname {
+			uploader = c
 		}
-		return botcore, nil
 	}
-	return nil, errs.New(errs.ErrParam, "unsupport storage type:%s", c.StorageType)
+	if uploader == nil {
+		return nil, errs.New(errs.ErrParam, "upload fs not found, support only:%+v", names)
+	}
+	return core.NewMultiCore(uploader, downloaders...)
+}
+
+func decodeToType(src interface{}, dst interface{}) error {
+	c, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		TagName: "json",
+		Result:  dst,
+	})
+	if err != nil {
+		return errs.Wrap(errs.ErrParam, "create decoder fail", err)
+	}
+	if err := c.Decode(src); err != nil {
+		return errs.Wrap(errs.ErrUnmarshal, "decode type fail", err)
+	}
+	logutil.GetLogger(context.Background()).With(zap.Any("src", src), zap.Any("dst", dst)).Debug("decode type finish")
+	return nil
+}
+
+func initS3Core(param interface{}) (core.IFsCore, error) {
+	s3info := &s3c.S3Config{}
+	if err := decodeToType(param, s3info); err != nil {
+		return nil, err
+	}
+	client, err := s3c.New(
+		s3c.WithEndpoint(s3info.Endpoint),
+		s3c.WithSSL(s3info.UseSSL),
+		s3c.WithSecret(s3info.SecretId, s3info.SecretKey),
+		s3c.WithBucket(s3info.Bucket),
+	)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrStorage, "init s3 fail", err)
+	}
+	s3core, err := s3.New(
+		s3.WithS3Client(client),
+	)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrStorage, "init s3 core fail", err)
+	}
+	return s3core, nil
+}
+
+func initTGBotCore(param interface{}) (core.IFsCore, error) {
+	botInfo := &config.BotConfig{}
+	if err := decodeToType(param, botInfo); err != nil {
+		return nil, err
+	}
+	botcore, err := bot.New(
+		bot.WithAuth(int64(botInfo.Chatid), botInfo.Token),
+	)
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrStorage, "init tg bot fail", err)
+	}
+	return botcore, nil
 }

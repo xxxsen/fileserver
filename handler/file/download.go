@@ -37,6 +37,7 @@ func streamDownload(ctx *gin.Context, downKey uint64, fs core.IFsCore, fileinfo 
 		Key:     fileinfo.FileKey,
 		Extra:   fileinfo.Extra,
 		StartAt: 0,
+		StType:  fileinfo.StType,
 	})
 	if err != nil {
 		return http.StatusOK, errs.Wrap(errs.ErrS3, "create download stream fail", err), nil
@@ -94,7 +95,7 @@ func FileDownload(ctx *gin.Context, request interface{}) (int, errs.IError, inte
 		return streamDownload(ctx, downKey, fs, fileinfo)
 	}
 
-	file := core.NewSeeker(ctx, fs, int64(fileinfo.FileSize), fileinfo.FileKey, fileinfo.Extra)
+	file := core.NewSeeker(ctx, fs, int64(fileinfo.FileSize), fileinfo.FileKey, fileinfo.Extra, fileinfo.StType)
 	defer file.Close()
 	http.ServeContent(ctx.Writer, ctx.Request, strconv.Quote(fileinfo.FileName), time.Unix(int64(fileinfo.CreateTime), 0), file)
 	return http.StatusOK, nil, nil

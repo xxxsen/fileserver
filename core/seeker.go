@@ -32,9 +32,10 @@ type SeekCore struct {
 	cur    int64 //for recording current read pos
 	isOpen bool
 	fsz    int64
+	sttype uint8
 }
 
-func NewSeeker(ctx context.Context, c IFsCore, sz int64, key string, extra []byte) *SeekCore {
+func NewSeeker(ctx context.Context, c IFsCore, sz int64, key string, extra []byte, sttype uint8) *SeekCore {
 	return &SeekCore{
 		ctx:    ctx,
 		c:      c,
@@ -43,6 +44,7 @@ func NewSeeker(ctx context.Context, c IFsCore, sz int64, key string, extra []byt
 		cur:    0,
 		isOpen: true,
 		fsz:    sz,
+		sttype: sttype,
 	}
 }
 
@@ -54,6 +56,7 @@ func (s *SeekCore) openStream(at int64) (io.ReadCloser, error) {
 		Key:     s.key,
 		Extra:   s.extra,
 		StartAt: at,
+		StType:  s.sttype,
 	})
 	if err != nil {
 		return nil, err

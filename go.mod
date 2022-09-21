@@ -10,6 +10,7 @@ require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/google/uuid v1.3.0
 	github.com/hnlq715/golang-lru v0.3.0
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/xxxsen/common v0.0.8
 	go.uber.org/zap v1.23.0
 	google.golang.org/protobuf v1.28.0

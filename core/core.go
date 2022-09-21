@@ -52,6 +52,7 @@ type FileDownloadRequest struct {
 	Key     string
 	Extra   []byte
 	StartAt int64
+	StType  uint8
 }
 
 type FileDownloadResponse struct {
