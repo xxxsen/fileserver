@@ -72,7 +72,7 @@ func initStorage(c *config.Config) (core.IFsCore, error) {
 		case "s3":
 			c, err = initS3Core(param)
 		case "tgbot":
-			c, err = initTGBotCore(param)
+			c, err = initMultiTGBotCore(param)
 		}
 		if err != nil {
 			return nil, errs.Wrap(errs.ErrStorage, fmt.Sprintf("init core:%s fail", name), err)
@@ -127,16 +127,24 @@ func initS3Core(param interface{}) (core.IFsCore, error) {
 	return s3core, nil
 }
 
-func initTGBotCore(param interface{}) (core.IFsCore, error) {
-	botInfo := &config.BotConfig{}
-	if err := decodeToType(param, botInfo); err != nil {
+func initMultiTGBotCore(param interface{}) (core.IFsCore, error) {
+	botsInfo := []config.BotConfig{}
+	if err := decodeToType(param, &botsInfo); err != nil {
 		return nil, err
 	}
-	botcore, err := bot.New(
-		bot.WithAuth(int64(botInfo.Chatid), botInfo.Token),
-	)
-	if err != nil {
-		return nil, errs.Wrap(errs.ErrStorage, "init tg bot fail", err)
+	cores := make([]*bot.TGBot, 0, len(botsInfo))
+	for _, botInfo := range botsInfo {
+		botcore, err := bot.New(bot.WithAuth(int64(botInfo.Chatid), botInfo.Token))
+		if err != nil {
+			return nil, errs.Wrap(errs.ErrStorage,
+				fmt.Sprintf("init tg bot fail, chatid:%d, token:%s", botInfo.Chatid, botInfo.Token), err)
+		}
+		logutil.GetLogger(context.Background()).With(
+			zap.Int64("chatid", botcore.GetChatId()),
+			zap.String("token", botcore.GetToken()),
+			zap.Uint32("bothash", botcore.GetBotHash()),
+		).Info("init bot succ")
+		cores = append(cores, botcore)
 	}
-	return botcore, nil
+	return bot.NewMultiBot(cores...)
 }

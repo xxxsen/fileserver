@@ -74,6 +74,18 @@ func newBotClient(chatid int64, token string) (*tgbotapi.BotAPI, error) {
 	return bot, nil
 }
 
+func (c *TGBot) GetChatId() int64 {
+	return c.c.chatid
+}
+
+func (c *TGBot) GetToken() string {
+	return c.c.token
+}
+
+func (c *TGBot) GetBotHash() uint32 {
+	return c.bothash
+}
+
 func (c *TGBot) BlockSize() int64 {
 	return c.c.blksize
 }
