@@ -3,6 +3,8 @@ package handler
 import (
 	"fileserver/handler/file"
 	"fileserver/handler/file/bigfile"
+	"fileserver/handler/middlewares"
+	"fileserver/handler/s3"
 	"fileserver/proto/fileserver/fileinfo"
 
 	"github.com/xxxsen/common/naivesvr"
@@ -31,5 +33,10 @@ func OnRegist(router *gin.Engine) {
 	//meta
 	{
 		router.POST("/file/meta", naivesvr.WrapHandler(&fileinfo.GetFileMetaRequest{}, codec.JsonCodec, file.Meta))
+	}
+	//s3
+	{
+		router.GET("/s3/*s3Param", middlewares.S3BucketOpLimitMiddleware(), s3.Download)
+		router.PUT("/s3/*s3Param", middlewares.S3BucketOpLimitMiddleware(), s3.Upload)
 	}
 }

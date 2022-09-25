@@ -33,7 +33,7 @@ func (d *fileInfoDaoImpl) Table() string {
 }
 
 func (d *fileInfoDaoImpl) Client() *sql.DB {
-	return db.GetMediaDB()
+	return db.GetFileDB()
 }
 
 func (d *fileInfoDaoImpl) Fields() []string {

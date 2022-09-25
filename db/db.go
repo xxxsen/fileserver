@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	dbMediaInfo *sql.DB
+	dbFileInfo *sql.DB
 )
 
 func InitFileDB(c *database.DBConfig) error {
@@ -18,10 +18,10 @@ func InitFileDB(c *database.DBConfig) error {
 	if err != nil {
 		return errs.Wrap(errs.ErrDatabase, "open db fail", err)
 	}
-	dbMediaInfo = client
+	dbFileInfo = client
 	return nil
 }
 
-func GetMediaDB() *sql.DB {
-	return dbMediaInfo
+func GetFileDB() *sql.DB {
+	return dbFileInfo
 }
