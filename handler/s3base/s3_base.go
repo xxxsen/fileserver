@@ -1,8 +1,7 @@
-package s3
+package s3base
 
 import (
 	"encoding/xml"
-	"fileserver/handler/middlewares"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +10,35 @@ import (
 	"github.com/xxxsen/common/trace"
 	"go.uber.org/zap"
 )
+
+const (
+	keyS3Bucket = "x-s3-bucket"
+	keyS3Object = "x-s3-object"
+)
+
+func GetS3Bucket(ctx *gin.Context) (string, bool) {
+	val, ok := ctx.Get(keyS3Bucket)
+	if !ok {
+		return "", false
+	}
+	return val.(string), true
+}
+
+func GetS3Object(ctx *gin.Context) (string, bool) {
+	val, ok := ctx.Get(keyS3Object)
+	if !ok {
+		return "", false
+	}
+	return val.(string), true
+}
+
+func SetS3Bucket(ctx *gin.Context, bk string) {
+	ctx.Set(keyS3Bucket, bk)
+}
+
+func SetS3Object(ctx *gin.Context, obj string) {
+	ctx.Set(keyS3Object, obj)
+}
 
 type S3ErrorMessage struct {
 	XMLName    xml.Name `xml:"Error"`
@@ -28,8 +56,8 @@ func ResponseWithError(ctx *gin.Context, code int, e *S3ErrorMessage) {
 }
 
 func WriteError(ctx *gin.Context, statuscode int, err errs.IError) {
-	bucket, _ := middlewares.GetS3Bucket(ctx)
-	obj, _ := middlewares.GetS3Object(ctx)
+	bucket, _ := GetS3Bucket(ctx)
+	obj, _ := GetS3Object(ctx)
 	logutil.GetLogger(ctx).With(
 		zap.Int("status_code", statuscode),
 		zap.String("bucket", bucket),

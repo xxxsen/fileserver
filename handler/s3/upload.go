@@ -5,7 +5,7 @@ import (
 	"fileserver/dao"
 	"fileserver/handler/common"
 	"fileserver/handler/getter"
-	"fileserver/handler/middlewares"
+	"fileserver/handler/s3base"
 	"fileserver/model"
 	"fileserver/utils"
 	"fmt"
@@ -29,18 +29,18 @@ func Upload(ctx *gin.Context) {
 	length := ctx.Request.ContentLength
 
 	if length > maxS3UploadFileLimit {
-		WriteError(ctx, http.StatusBadRequest, errs.New(errs.ErrParam, "size out of limit, s3 file size should less than:%d", maxS3UploadFileLimit))
+		s3base.WriteError(ctx, http.StatusBadRequest, errs.New(errs.ErrParam, "size out of limit, s3 file size should less than:%d", maxS3UploadFileLimit))
 		return
 	}
 	raw, err := ioutil.ReadAll(ctx.Request.Body)
 	if err != nil {
-		WriteError(ctx, http.StatusBadRequest, errs.Wrap(errs.ErrIO, "read body fail", err))
+		s3base.WriteError(ctx, http.StatusBadRequest, errs.Wrap(errs.ErrIO, "read body fail", err))
 		return
 	}
 
 	checksum, err := utils.Base64Md52HexMd5(md5Base64)
 	if err != nil {
-		WriteError(ctx, http.StatusBadRequest, errs.Wrap(errs.ErrParam, "invalid checksum", err))
+		s3base.WriteError(ctx, http.StatusBadRequest, errs.Wrap(errs.ErrParam, "invalid checksum", err))
 		return
 	}
 	if len(checksum) == 0 {
@@ -48,8 +48,8 @@ func Upload(ctx *gin.Context) {
 	}
 
 	fs := getter.MustGetFsClient(ctx)
-	bucket, _ := middlewares.GetS3Bucket(ctx)
-	obj, _ := middlewares.GetS3Object(ctx)
+	bucket, _ := s3base.GetS3Bucket(ctx)
+	obj, _ := s3base.GetS3Object(ctx)
 	name := path.Base(obj)
 	uploadRequest := common.CommonUploadContext{
 		IDG:    idgen.Default(),
@@ -62,7 +62,7 @@ func Upload(ctx *gin.Context) {
 	}
 	fileid, err := common.Upload(ctx, &uploadRequest)
 	if err != nil {
-		WriteError(ctx, http.StatusInternalServerError, errs.Wrap(errs.ErrIO, "upload fail", err))
+		s3base.WriteError(ctx, http.StatusInternalServerError, errs.Wrap(errs.ErrIO, "upload fail", err))
 		return
 	}
 	filename := fmt.Sprintf("%s/%s", bucket, obj)
@@ -72,7 +72,7 @@ func Upload(ctx *gin.Context) {
 			FileId:   fileid,
 		},
 	}); err != nil {
-		WriteError(ctx, http.StatusInternalServerError, errs.Wrap(errs.ErrDatabase, "create mapping info fail", err))
+		s3base.WriteError(ctx, http.StatusInternalServerError, errs.Wrap(errs.ErrDatabase, "create mapping info fail", err))
 		return
 	}
 	ctx.Writer.Header().Set("ETag", `"`+checksum+`"`)
