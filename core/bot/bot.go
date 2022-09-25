@@ -10,6 +10,7 @@ import (
 	"fileserver/proto/fileserver/fileinfo"
 	"fileserver/utils"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"io/ioutil"
 	"os"
@@ -27,6 +28,7 @@ type TGBot struct {
 	c         *config
 	bot       *tgbotapi.BotAPI
 	metaCache *lru.Cache
+	bothash   uint32
 }
 
 const (
@@ -53,7 +55,14 @@ func New(opts ...Option) (*TGBot, error) {
 	}
 	metaCache, _ := lru.New(10000)
 
-	return &TGBot{c: c, metaCache: metaCache, bot: botClient}, nil
+	return &TGBot{c: c, metaCache: metaCache, bot: botClient, bothash: calcBotHash(c.chatid, c.token)}, nil
+}
+
+func calcBotHash(chatid int64, token string) uint32 {
+	key := fmt.Sprintf("%d:%s", chatid, token)
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	return h.Sum32()
 }
 
 func newBotClient(chatid int64, token string) (*tgbotapi.BotAPI, error) {
@@ -149,7 +158,7 @@ func (c *TGBot) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*
 		return nil, errs.Wrap(errs.ErrIO, "upload file fail", err)
 	}
 	extra, err := utils.EncodeBotFileExtra(&fileinfo.BotFileExtra{
-		ChatId:    proto.Int64(c.c.chatid),
+		BotHash:   proto.Uint32(c.bothash),
 		FileType:  proto.Int32(filetype),
 		BlockSize: proto.Int64(c.BlockSize()),
 		FileSize:  proto.Int64(uctx.Size),
@@ -213,8 +222,8 @@ func (c *TGBot) FileDownload(ctx context.Context, fctx *core.FileDownloadRequest
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrUnmarshal, "decode bot file context fail", err)
 	}
-	if bctx.GetChatId() != c.c.chatid {
-		return nil, errs.New(errs.ErrParam, "chatid not match, file chatid:%d, current chatid:%d", bctx.GetChatId(), c.c.chatid)
+	if bctx.GetBotHash() != c.bothash {
+		return nil, errs.New(errs.ErrParam, "chatid not match, file bothash:%d, current bothash:%d", bctx.GetBotHash(), c.c.chatid)
 	}
 	var r io.ReadCloser
 	switch bctx.GetFileType() {
@@ -409,7 +418,7 @@ func (c *TGBot) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUploa
 	}
 	cks := c.buildETag(md5s)
 	extra, err := utils.EncodeBotFileExtra(&fileinfo.BotFileExtra{
-		ChatId:    proto.Int64(c.c.chatid),
+		BotHash:   proto.Uint32(c.bothash),
 		FileType:  proto.Int32(int32(filetype)),
 		BlockSize: proto.Int64(int64(uctx.GetBlockSize())),
 		FileSize:  proto.Int64(int64(uctx.GetFileSize())),
