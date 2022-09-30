@@ -33,25 +33,27 @@ func S3V2Auth(ctx *gin.Context, u, p string) (bool, error) {
 	return false, nil
 }
 
-func CommonAuth(u, p string) gin.HandlerFunc {
+func CommonAuth(users map[string]string) gin.HandlerFunc {
 	fns := []AuthFunc{
 		CodeAuth,
 		BasicAuth,
 		S3V2Auth,
 	}
-	return CommonAuthMiddleware(u, p, fns...)
+	return CommonAuthMiddleware(users, fns...)
 }
 
-func CommonAuthMiddleware(u, p string, fns ...AuthFunc) gin.HandlerFunc {
+func CommonAuthMiddleware(users map[string]string, fns ...AuthFunc) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		for _, fn := range fns {
-			ok, err := fn(ctx, u, p)
-			if err != nil {
-				ctx.AbortWithError(http.StatusUnauthorized, errs.Wrap(errs.ErrUnknown, "internal services error", err))
-				return
-			}
-			if ok {
-				return
+		for u, p := range users {
+			for _, fn := range fns {
+				ok, err := fn(ctx, u, p)
+				if err != nil {
+					ctx.AbortWithError(http.StatusUnauthorized, errs.Wrap(errs.ErrUnknown, "internal services error", err))
+					return
+				}
+				if ok {
+					return
+				}
 			}
 		}
 		ctx.AbortWithError(http.StatusUnauthorized, errs.New(errs.ErrParam, "need auth"))

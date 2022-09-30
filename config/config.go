@@ -22,9 +22,9 @@ type BotConfig struct {
 	Token  string `json:"token"`
 }
 
-type AuthConfig struct {
-	User string `json:"user"`
-	Pwd  string `json:"pwd"`
+type IOConfig struct {
+	MaxUploadThread   int `json:"max_upload_thread"`
+	MaxDownloadThread int `json:"max_download_thread"`
 }
 
 type Config struct {
@@ -34,7 +34,8 @@ type Config struct {
 	IDGenInfo  IDGenConfig            `json:"idgen_info"`
 	FsInfo     map[string]interface{} `json:"fs_info"`
 	UploadFs   string                 `json:"upload_fs"`
-	AuthInfo   AuthConfig             `json:"auth_info"`
+	AuthInfo   map[string]string      `json:"auth_info"`
+	IOInfo     IOConfig               `json:"io_info"`
 }
 
 func Parse(f string) (*Config, error) {

@@ -18,30 +18,40 @@ type RegistConfig struct {
 	Pwd  string
 }
 
-func OnRegistWithConfig(c *RegistConfig) func(router *gin.Engine) {
+func OnRegistWithConfig(opts ...Option) func(router *gin.Engine) {
 	return func(router *gin.Engine) {
-		OnRegist(router, c)
+		OnRegist(router, opts...)
 	}
 }
 
-func OnRegist(router *gin.Engine, c *RegistConfig) {
-	commonAuth := middlewares.CommonAuth(c.User, c.Pwd)
+func OnRegist(router *gin.Engine, opts ...Option) {
+	c := &config{
+		users: make(map[string]string),
+	}
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	authMiddleware := middlewares.CommonAuth(c.users)
+
+	uploadLimitMiddleware := middlewares.IOThreadLimitMiddleware(middlewares.NewIOThreadContext(int64(c.maxUploadThread)))
+	downloadLimitMiddleware := middlewares.IOThreadLimitMiddleware(middlewares.NewIOThreadContext(int64(c.maxDownloadThread)))
 
 	//upload
 	{
-		uploadRouter := router.Group("/upload")
-		uploadRouter.POST("/image", commonAuth, naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.ImageUpload))
-		uploadRouter.POST("/video", commonAuth, naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.VideoUpload))
-		uploadRouter.POST("/file", commonAuth, naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.FileUpload))
+		uploadRouter := router.Group("/upload", authMiddleware, uploadLimitMiddleware)
+		uploadRouter.POST("/image", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.ImageUpload))
+		uploadRouter.POST("/video", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.VideoUpload))
+		uploadRouter.POST("/file", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.FileUpload))
 		bigFileRouter := uploadRouter.Group("/bigfile")
-		bigFileRouter.POST("/begin", commonAuth, naivesvr.WrapHandler(&fileinfo.FileUploadBeginRequest{}, codec.JsonCodec, bigfile.Begin))
-		bigFileRouter.POST("/part", commonAuth, naivesvr.WrapHandler(&bigfile.PartUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), bigfile.Part))
-		bigFileRouter.POST("/end", commonAuth, naivesvr.WrapHandler(&fileinfo.FileUploadEndRequest{}, codec.JsonCodec, bigfile.End))
+		bigFileRouter.POST("/begin", naivesvr.WrapHandler(&fileinfo.FileUploadBeginRequest{}, codec.JsonCodec, bigfile.Begin))
+		bigFileRouter.POST("/part", naivesvr.WrapHandler(&bigfile.PartUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), bigfile.Part))
+		bigFileRouter.POST("/end", naivesvr.WrapHandler(&fileinfo.FileUploadEndRequest{}, codec.JsonCodec, bigfile.End))
 
 	}
 	//download
 	{
-		router.GET("/file", naivesvr.WrapHandler(&file.BasicFileDownloadRequest{}, codec.CustomCodec(codec.NopCodec, codec.QueryCodec), file.FileDownload)) //input: down_key
+		router.GET("/file", downloadLimitMiddleware, naivesvr.WrapHandler(&file.BasicFileDownloadRequest{}, codec.CustomCodec(codec.NopCodec, codec.QueryCodec), file.FileDownload)) //input: down_key
 	}
 	//meta
 	{
@@ -51,7 +61,7 @@ func OnRegist(router *gin.Engine, c *RegistConfig) {
 	{
 		//
 		s3Prefix := "/s3/"
-		router.GET("/s3/*s3Param", middlewares.S3BucketOpLimitMiddleware(s3Prefix), s3.Download)
-		router.PUT("/s3/*s3Param", middlewares.S3BucketOpLimitMiddleware(s3Prefix), s3.Upload)
+		router.GET("/s3/*s3Param", downloadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(s3Prefix), s3.Download)
+		router.PUT("/s3/*s3Param", authMiddleware, uploadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(s3Prefix), s3.Upload)
 	}
 }

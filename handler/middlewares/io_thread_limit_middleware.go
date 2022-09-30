@@ -6,15 +6,19 @@ import (
 )
 
 type IOTheadContext struct {
-	wg *semaphore.Weighted
+	cnt int64
+	wg  *semaphore.Weighted
 }
 
 func NewIOThreadContext(mt int64) *IOTheadContext {
-	return &IOTheadContext{semaphore.NewWeighted(mt)}
+	return &IOTheadContext{wg: semaphore.NewWeighted(mt), cnt: mt}
 }
 
 func IOThreadLimitMiddleware(ctx *IOTheadContext) gin.HandlerFunc {
 	return func(g *gin.Context) {
+		if ctx.cnt == 0 {
+			return
+		}
 		ctx.wg.Acquire(g, 1)
 		defer ctx.wg.Release(1)
 		g.Next()
