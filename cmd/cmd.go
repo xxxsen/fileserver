@@ -48,7 +48,10 @@ func main() {
 	}
 	svr, err := naivesvr.NewServer(
 		naivesvr.WithAddress(c.ServerInfo.Address),
-		naivesvr.WithHandlerRegister(handler.OnRegist),
+		naivesvr.WithHandlerRegister(handler.OnRegistWithConfig(&handler.RegistConfig{
+			User: c.AuthInfo.User,
+			Pwd:  c.AuthInfo.Pwd,
+		})),
 		naivesvr.WithAttach(constants.KeyStorageClient, fs),
 	)
 	if err != nil {

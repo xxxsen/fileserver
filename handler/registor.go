@@ -13,17 +13,30 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func OnRegist(router *gin.Engine) {
+type RegistConfig struct {
+	User string
+	Pwd  string
+}
+
+func OnRegistWithConfig(c *RegistConfig) func(router *gin.Engine) {
+	return func(router *gin.Engine) {
+		OnRegist(router, c)
+	}
+}
+
+func OnRegist(router *gin.Engine, c *RegistConfig) {
+	commonAuth := middlewares.CommonAuth(c.User, c.Pwd)
+
 	//upload
 	{
 		uploadRouter := router.Group("/upload")
-		uploadRouter.POST("/image", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.ImageUpload))
-		uploadRouter.POST("/video", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.VideoUpload))
-		uploadRouter.POST("/file", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.FileUpload))
+		uploadRouter.POST("/image", commonAuth, naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.ImageUpload))
+		uploadRouter.POST("/video", commonAuth, naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.VideoUpload))
+		uploadRouter.POST("/file", commonAuth, naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.FileUpload))
 		bigFileRouter := uploadRouter.Group("/bigfile")
-		bigFileRouter.POST("/begin", naivesvr.WrapHandler(&fileinfo.FileUploadBeginRequest{}, codec.JsonCodec, bigfile.Begin))
-		bigFileRouter.POST("/part", naivesvr.WrapHandler(&bigfile.PartUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), bigfile.Part))
-		bigFileRouter.POST("/end", naivesvr.WrapHandler(&fileinfo.FileUploadEndRequest{}, codec.JsonCodec, bigfile.End))
+		bigFileRouter.POST("/begin", commonAuth, naivesvr.WrapHandler(&fileinfo.FileUploadBeginRequest{}, codec.JsonCodec, bigfile.Begin))
+		bigFileRouter.POST("/part", commonAuth, naivesvr.WrapHandler(&bigfile.PartUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), bigfile.Part))
+		bigFileRouter.POST("/end", commonAuth, naivesvr.WrapHandler(&fileinfo.FileUploadEndRequest{}, codec.JsonCodec, bigfile.End))
 
 	}
 	//download

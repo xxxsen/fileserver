@@ -22,6 +22,11 @@ type BotConfig struct {
 	Token  string `json:"token"`
 }
 
+type AuthConfig struct {
+	User string `json:"user"`
+	Pwd  string `json:"pwd"`
+}
+
 type Config struct {
 	LogInfo    logger.LogConfig       `json:"log_info"`
 	FileDBInfo database.DBConfig      `json:"file_db_info"`
@@ -29,6 +34,7 @@ type Config struct {
 	IDGenInfo  IDGenConfig            `json:"idgen_info"`
 	FsInfo     map[string]interface{} `json:"fs_info"`
 	UploadFs   string                 `json:"upload_fs"`
+	AuthInfo   AuthConfig             `json:"auth_info"`
 }
 
 func Parse(f string) (*Config, error) {
