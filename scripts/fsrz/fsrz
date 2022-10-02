@@ -1,0 +1,90 @@
+#!/bin/bash
+
+set -e 
+
+## ===var==
+
+tplt=$(cat <<-END
+AK=abc
+SK=123456
+SCHEMA=http
+DOMAIN=127.0.0.1
+END
+)
+
+CONFIG_DIR=/etc/fsrz
+CONFIG=$CONFIG_DIR/config
+
+## ======
+
+## doUpload upload logic
+function doUpload()
+{
+    if [ ! -f $CONFIG ]; then 
+        echo "config:$CONFIG not found, skip"
+        exit 1
+    fi 
+    file=$1
+
+    if [ ! -f "$file" ]; then 
+        echo "$file not found, skip"
+        exit 1
+    fi 
+    source $CONFIG 
+
+    echo "read ak:$AK"
+    echo "read sk:$SK"
+    echo "read schema:$SCHEMA"
+    echo "read domain:$DOMAIN"
+
+    downkey=$(curl -s -L -X POST "${SCHEMA}://${DOMAIN}/upload/file" \
+    -H "x-fs-code: ${SK}" \
+    --form "file=@\"$file\"" | jq -r ".data.down_key")
+
+    echo "read downkey from server:$downkey"
+    echo "========"
+    echo "$SCHEMA://$DOMAIN/file?down_key=$downkey"
+
+}
+
+function checkroot() 
+{
+    if [ "$(id -u)" != "0" ]; then 
+        echo "should run as root"
+        exit 1
+    fi 
+}
+
+function doInstall()
+{
+    checkroot 
+    mkdir "$CONFIG_DIR" -p 
+    echo "$tplt" > $CONFIG.tplt 
+    echo "touch $CONFIG.tplt succ, rename it to $CONFIG and fill with your self config plz" 
+}
+
+function doRemove() 
+{
+    echo "remove dir:$CONFIG_DIR manually plz."
+}
+
+if [ "$#" == "0" ]; then 
+    echo "try $0 [install|remove|\${file}]"
+    exit 2
+fi 
+
+p1=$1
+
+case ${p1} in
+    "install")
+        doInstall
+        ;;
+    "remove") 
+        doRemove
+        ;;
+    *)
+        doUpload $1
+        ;;
+esac
+
+
