@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"encoding/base64"
+	"fileserver/handler/s3base"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -29,8 +30,13 @@ func BasicAuth(ctx *gin.Context, u, p string) (bool, error) {
 }
 
 func S3V2Auth(ctx *gin.Context, u, p string) (bool, error) {
-	//TODO: finish it
-	return false, nil
+	if !s3base.IsRequestSignatureV2(ctx.Request) {
+		return false, nil
+	}
+	if err := s3base.S3AuthV2(ctx.Request, u, p); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func CommonAuth(users map[string]string) gin.HandlerFunc {
