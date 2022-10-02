@@ -3,7 +3,11 @@ package middlewares
 import (
 	"encoding/base64"
 	"fileserver/handler/s3base"
+	"fileserver/utils"
+	"fmt"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/errs"
@@ -12,8 +16,18 @@ import (
 type AuthFunc func(ctx *gin.Context, u, p string) (bool, error)
 
 func CodeAuth(ctx *gin.Context, u, p string) (bool, error) {
+	ts := ctx.GetHeader("x-fs-ts")
 	code := ctx.GetHeader("x-fs-code")
-	if code == p {
+	if len(ts) == 0 || len(code) == 0 {
+		return false, nil
+	}
+	its, _ := strconv.ParseUint(ts, 10, 64)
+	now := time.Now().Unix()
+	if its+60 < uint64(now) {
+		return false, errs.New(errs.ErrParam, "code expire, ts:%s", ts)
+	}
+	realCode := utils.GetMd5([]byte(fmt.Sprintf("%s:%s:%s", u, p, ts)))
+	if code == realCode {
 		return true, nil
 	}
 	return false, nil
@@ -21,6 +35,9 @@ func CodeAuth(ctx *gin.Context, u, p string) (bool, error) {
 
 func BasicAuth(ctx *gin.Context, u, p string) (bool, error) {
 	auth := ctx.GetHeader("Authorization")
+	if len(auth) == 0 {
+		return false, nil
+	}
 	base := u + ":" + p
 	get := "Basic " + base64.StdEncoding.EncodeToString([]byte(base))
 	if auth == get {
