@@ -41,6 +41,7 @@ message UploadIdCtx {
     optional string upload_id = 2; //
     optional uint32 block_size = 3; //
     optional string file_key = 4; //
+    optional uint32 bot_hash = 5; //
 }
 
 message GetFileMetaRequest {

@@ -3,7 +3,6 @@ module fileserver
 go 1.15
 
 require (
-	github.com/aws/aws-sdk-go v1.44.96
 	github.com/didi/gendry v1.7.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-playground/assert/v2 v2.0.1
