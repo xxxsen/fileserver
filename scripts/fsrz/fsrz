@@ -88,6 +88,7 @@ function checkroot()
 function doInstall()
 {
     checkroot 
+    cp "$0" /bin 
     mkdir "$CONFIG_DIR" -p 
     echo "$tplt" > $CONFIG.tplt 
     echo "touch $CONFIG.tplt succ, rename it to $CONFIG and fill with your self config plz" 
@@ -95,6 +96,8 @@ function doInstall()
 
 function doRemove() 
 {
+    checkroot 
+    rm "/bin/fsrz" -f 
     echo "remove dir:$CONFIG_DIR manually plz."
 }
 
