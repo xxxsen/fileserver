@@ -7,5 +7,5 @@ create table mapping_info_tab (
     modify_time bigint unsigned not null,
     file_id bigint unsigned not null,
     primary key(id),
-    unique key idx_code_ck(hash_code, check_sum)
+    unique key idx_code_ck(hash_code, check_sum(8))
 ) ENGINE=InnoDB CHARACTER SET utf8mb4;
