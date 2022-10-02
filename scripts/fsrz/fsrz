@@ -9,6 +9,8 @@ AK=abc
 SK=123456
 SCHEMA=http
 DOMAIN=127.0.0.1
+DOWNLOAD_DOMAIN=
+UPLOAD_DOMAIN=
 END
 )
 
@@ -32,18 +34,27 @@ function doUpload()
     fi 
     source $CONFIG 
 
+    if [ "$DOWNLOAD_DOMAIN" == "" ]; then 
+        DOWNLOAD_DOMAIN=$DOMAIN 
+    fi 
+    if [ "$UPLOAD_DOMAIN" == "" ]; then 
+        UPLOAD_DOMAIN=$DOMAIN 
+    fi 
+
+
     echo "read ak:$AK"
     echo "read sk:$SK"
     echo "read schema:$SCHEMA"
-    echo "read domain:$DOMAIN"
+    echo "read upload domain:$UPLOAD_DOMAIN"
+    echo "read download domain:$DOWNLOAD_DOMAIN"
 
-    downkey=$(curl -s -L -X POST "${SCHEMA}://${DOMAIN}/upload/file" \
+    downkey=$(curl -s -L -X POST "${SCHEMA}://${UPLOAD_DOMAIN}/upload/file" \
     -H "x-fs-code: ${SK}" \
     --form "file=@\"$file\"" | jq -r ".data.down_key")
 
     echo "read downkey from server:$downkey"
     echo "========"
-    echo "$SCHEMA://$DOMAIN/file?down_key=$downkey"
+    echo "$SCHEMA://$DOWNLOAD_DOMAIN/file?down_key=$downkey"
 
 }
 
