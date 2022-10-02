@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e 
-
 ## ===var==
 
 tplt=$(cat <<-END
@@ -62,10 +60,16 @@ function doUpload()
 
     ts=$(date "+%s")
     skcode=$(echo -n $AK":"$SK":$ts"|md5sum|cut -d ' ' -f1)
-    downkey=$(curl -s -L -X POST "${SCHEMA}://${UPLOAD_DOMAIN}/upload/file" \
+    data=$(curl -f -s -L -X POST "${SCHEMA}://${UPLOAD_DOMAIN}/upload/file" \
     -H "x-fs-code: ${skcode}" \
     -H "x-fs-ts: ${ts}" \
-    --form "file=@\"$file\"" | jq -r ".data.down_key")
+    --form "file=@\"$file\"")
+    extcode=$?
+    if [ "$extcode" != "0" ]; then 
+        echo "upload to svr fail, code:$extcode"
+        exit 1
+    fi 
+    downkey=$(echo $data | jq -r ".data.down_key")
 
     echo "read downkey from server:$downkey"
     echo "========"
