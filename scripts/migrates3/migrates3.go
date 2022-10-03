@@ -83,6 +83,9 @@ func uploadOne(uri string, host string, user string, pwd string) error {
 
 func upload(lines []string, host string, user string, pwd string) error {
 	for _, line := range lines {
+		if len(line) == 0 {
+			break
+		}
 		if err := uploadOne(line, *uploadhost, user, pwd); err != nil {
 			return err
 		}
