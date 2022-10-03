@@ -1,4 +1,6 @@
-create table mapping_info_tab (
+CREATE DATABASE IF NOT EXISTS filedb;
+use filedb;
+create table if not exists mapping_info_tab (
     id bigint unsigned not null auto_increment,
     file_name varchar(256) not null,
     hash_code int unsigned not null,

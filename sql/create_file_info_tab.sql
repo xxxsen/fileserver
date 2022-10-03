@@ -1,4 +1,6 @@
-create table file_info_tab (
+CREATE DATABASE IF NOT EXISTS filedb;
+use filedb;
+create table if not exists file_info_tab (
     id bigint unsigned not null auto_increment,
     file_name varchar(256) not null,
     hash varchar(40) not null,
