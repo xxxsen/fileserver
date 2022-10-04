@@ -60,7 +60,14 @@ func S3V4Auth(ctx *gin.Context, u, p string) (bool, error) {
 	if !s3base.IsRequestSignatureV4(ctx.Request) {
 		return false, nil
 	}
-	pass, err := s3base.S3AuthV4(ctx.Request, u, p)
+	parsed, _, err := s3base.ParseV4Signature(ctx.Request)
+	if err != nil {
+		return false, errs.Wrap(errs.ErrParam, "parse v4 signature fail", err)
+	}
+	if u != parsed.AKey {
+		return false, nil
+	}
+	pass, err := s3base.S3AuthV4(ctx.Request, u, p, parsed)
 	if err != nil {
 		return false, err
 	}
