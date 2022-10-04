@@ -20,7 +20,6 @@ import (
 const (
 	iSO8601FormatDateTime = "20060102T150405Z" // 时间原点
 	iSO8601FormatDate     = "20060102"
-	unSignPayload         = "UNSIGNED-PAYLOAD" // 如果不对BODY进行哈希
 )
 
 const (
@@ -305,10 +304,6 @@ func (s *S3V4Verify) hashRequest(r *http.Request) (string, error) {
 
 // 规范request body 进行sha256哈希
 func (s *S3V4Verify) hashPayload(r *http.Request) (string, error) {
-	if strings.EqualFold(s.parsed.Contentsha256, unSignPayload) {
-		// 如果request 的body 为空，那就用空字符串代替
-		return s.gSha256([]byte("")), nil
-	}
 	return s.parsed.Contentsha256, nil
 }
 
