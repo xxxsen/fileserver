@@ -27,6 +27,8 @@ const (
 	v4CredPrefix         = "Credential="
 	v4SignedHeaderPrefix = "SignedHeaders="
 	v4SignaturePrefix    = "Signature="
+	v4SignAlgorithm      = "AWS4-HMAC-SHA256"
+	s3Authorization      = "Authorization"
 )
 
 type S3V4Verify struct {
@@ -60,7 +62,7 @@ type V4Signature struct {
 }
 
 func ParseV4Signature(r *http.Request) (*V4Signature, bool, error) {
-	auz := r.Header.Get(authorization)
+	auz := r.Header.Get(s3Authorization)
 	if len(auz) == 0 {
 		return nil, false, nil
 	}
@@ -345,25 +347,25 @@ func (s *S3V4Verify) createSignature(r *http.Request) (string, error) {
 }
 
 func (s *S3V4Verify) Verify() (bool, error) {
-	if s.parsed.Algorithm != signV4Algorithm {
-		return false, errs.New(errs.ErrParam, "algo not match, need:%s, get:%s", signV4Algorithm, s.parsed.Algorithm)
+	if s.parsed.Algorithm != v4SignAlgorithm {
+		return false, errs.New(errs.ErrParam, "algo not match, need:%s, get:%s", v4SignAlgorithm, s.parsed.Algorithm)
 	}
 	sign, err := s.createSignature(s.r)
 	if err != nil {
 		return false, err
 	}
-	if sign != s.r.Header.Get(authorization) {
+	if sign != s.r.Header.Get(s3Authorization) {
 		return false, nil
 	}
 	return true, nil
 }
 
 func IsRequestSignatureV4(r *http.Request) bool {
-	auz := r.Header.Get(authorization)
+	auz := r.Header.Get(s3Authorization)
 	if len(auz) == 0 {
 		return false
 	}
-	if !strings.HasPrefix(auz, signV4Algorithm) {
+	if !strings.HasPrefix(auz, v4SignAlgorithm) {
 		return false
 	}
 	return true

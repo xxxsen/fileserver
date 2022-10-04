@@ -63,6 +63,7 @@ function doUpload()
     data=$(curl -f -s -L -X POST "${SCHEMA}://${UPLOAD_DOMAIN}/upload/file" \
     -H "x-fs-code: ${skcode}" \
     -H "x-fs-ts: ${ts}" \
+    -H "x-fs-ak: ${AK}" \
     --form "file=@\"$file\"")
     extcode=$?
     if [ "$extcode" != "0" ]; then 
