@@ -56,11 +56,26 @@ func S3V2Auth(ctx *gin.Context, u, p string) (bool, error) {
 	return true, nil
 }
 
+func S3V4Auth(ctx *gin.Context, u, p string) (bool, error) {
+	if !s3base.IsRequestSignatureV4(ctx.Request) {
+		return false, nil
+	}
+	pass, err := s3base.S3AuthV4(ctx.Request, u, p)
+	if err != nil {
+		return false, err
+	}
+	if !pass {
+		return false, nil
+	}
+	return true, nil
+}
+
 func CommonAuth(users map[string]string) gin.HandlerFunc {
 	fns := []AuthFunc{
 		CodeAuth,
 		BasicAuth,
 		S3V2Auth,
+		S3V4Auth,
 	}
 	return CommonAuthMiddleware(users, fns...)
 }

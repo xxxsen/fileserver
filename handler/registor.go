@@ -62,6 +62,6 @@ func OnRegist(router *gin.Engine, opts ...Option) {
 		//
 		s3Prefix := "/s3/"
 		router.GET("/s3/*s3Param", downloadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(s3Prefix), s3.Download)
-		router.PUT("/s3/*s3Param", uploadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(s3Prefix), s3.Upload)
+		router.PUT("/s3/*s3Param", authMiddleware, uploadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(s3Prefix), s3.Upload)
 	}
 }

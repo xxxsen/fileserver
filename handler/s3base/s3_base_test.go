@@ -12,7 +12,7 @@ import (
 )
 
 func TestS3UploadDownload(t *testing.T) {
-	client, err := s3c.New(s3c.WithBucket("s3"), s3c.WithEndpoint("http://127.0.0.1:9901"), s3c.WithSSL(false), s3c.WithSecret("abc", "123"))
+	client, err := s3c.New(s3c.WithBucket("s3"), s3c.WithEndpoint("http://127.0.0.1:9901"), s3c.WithSSL(false), s3c.WithSecret("abc", "123456"))
 	assert.NoError(t, err)
 	ctx := context.Background()
 	content := "hello world, this is a test file xxxx for s3 upload"
