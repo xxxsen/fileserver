@@ -55,6 +55,16 @@ func ResponseWithError(ctx *gin.Context, code int, e *S3ErrorMessage) {
 	ctx.XML(code, e)
 }
 
+func SimpleReply(ctx *gin.Context) {
+	data := []byte("<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+		"<LocationConstraint xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"></LocationConstraint>")
+	_, err := ctx.Writer.Write(data)
+	if err != nil {
+		logutil.GetLogger(ctx).With(zap.Error(err)).Error("write msg fail")
+		return
+	}
+}
+
 func WriteError(ctx *gin.Context, statuscode int, err errs.IError) {
 	bucket, _ := GetS3Bucket(ctx)
 	obj, _ := GetS3Object(ctx)

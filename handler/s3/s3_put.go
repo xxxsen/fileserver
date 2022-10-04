@@ -79,3 +79,12 @@ func Upload(ctx *gin.Context) {
 	ctx.Writer.WriteHeader(http.StatusOK)
 	logutil.GetLogger(ctx).With(zap.String("bucket", bucket), zap.String("obj", obj)).Info("upload file finish")
 }
+
+func S3Put(ctx *gin.Context) {
+	_, exist := s3base.GetS3Object(ctx)
+	if !exist {
+		s3base.WriteError(ctx, http.StatusInternalServerError, errs.New(errs.ErrParam, "no file found"))
+		return
+	}
+	Upload(ctx)
+}

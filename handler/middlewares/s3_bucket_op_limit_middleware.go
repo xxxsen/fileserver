@@ -27,17 +27,11 @@ func S3BucketOpLimitMiddleware(prefix string) gin.HandlerFunc {
 		}
 		path = strings.Trim(path, "/")
 		parts := strings.SplitN(path, "/", 2)
-		if len(parts) != 2 {
-			s3base.WriteError(ctx, http.StatusInternalServerError, errs.New(errs.ErrParam, "part not match"))
-			return
-		}
 		bucket := parts[0]
-		obj := parts[1]
-		if len(bucket) == 0 || len(obj) == 0 {
-			s3base.WriteError(ctx, http.StatusInternalServerError, errs.New(errs.ErrParam, "bucket or obj len is 0"))
-			return
-		}
 		s3base.SetS3Bucket(ctx, bucket)
-		s3base.SetS3Object(ctx, obj)
+		if len(parts) > 1 {
+			obj := parts[1]
+			s3base.SetS3Object(ctx, obj)
+		}
 	}
 }

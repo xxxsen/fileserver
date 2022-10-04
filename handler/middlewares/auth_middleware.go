@@ -74,7 +74,6 @@ func CommonAuth(users map[string]string) gin.HandlerFunc {
 	fns := []AuthFunc{
 		CodeAuth,
 		BasicAuth,
-		S3V4Auth,
 	}
 	return CommonAuthMiddleware(users, fns...)
 }
