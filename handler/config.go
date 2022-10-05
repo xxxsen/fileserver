@@ -1,11 +1,13 @@
 package handler
 
 type config struct {
-	users             map[string]string
-	maxUploadThread   int
-	maxDownloadThread int
-	enableFakeS3      bool
-	fakeS3Buckets     []string
+	users              map[string]string
+	maxUploadThread    int
+	maxDownloadThread  int
+	enableFakeS3       bool
+	fakeS3Buckets      []string
+	enableRefererCheck bool
+	referers           []string
 }
 
 type Option func(c *config)
@@ -45,5 +47,17 @@ func WithEnableFakeS3(v bool) Option {
 func WithFakeS3BucketList(s []string) Option {
 	return func(c *config) {
 		c.fakeS3Buckets = s
+	}
+}
+
+func WithEnableRefererCheck(v bool) Option {
+	return func(c *config) {
+		c.enableRefererCheck = v
+	}
+}
+
+func WithRefererList(v []string) Option {
+	return func(c *config) {
+		c.referers = v
 	}
 }

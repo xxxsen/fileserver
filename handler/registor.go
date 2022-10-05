@@ -33,9 +33,11 @@ func OnRegist(router *gin.Engine, opts ...Option) {
 	uploadLimitMiddleware := middlewares.IOThreadLimitMiddleware(middlewares.NewIOThreadContext(int64(c.maxUploadThread)))
 	downloadLimitMiddleware := middlewares.IOThreadLimitMiddleware(middlewares.NewIOThreadContext(int64(c.maxDownloadThread)))
 
+	refererMiddleware := middlewares.RefererMiddleware(c.enableRefererCheck, c.referers)
+
 	//upload
 	{
-		uploadRouter := router.Group("/upload", authMiddleware, uploadLimitMiddleware)
+		uploadRouter := router.Group("/upload", authMiddleware, uploadLimitMiddleware, refererMiddleware)
 		uploadRouter.POST("/image", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.ImageUpload))
 		uploadRouter.POST("/video", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.VideoUpload))
 		uploadRouter.POST("/file", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.FileUpload))
