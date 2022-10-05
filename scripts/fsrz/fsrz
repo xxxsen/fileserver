@@ -94,7 +94,7 @@ function checkroot()
 function doInstall()
 {
     checkroot 
-    cp "$0" /bin 
+    cp "$0" /bin -a 
     mkdir "$CONFIG_DIR" -p 
     echo "$tplt" > $CONFIG.tplt 
     echo "touch $CONFIG.tplt succ, rename it to $CONFIG and fill with your self config plz" 
