@@ -70,6 +70,11 @@ function doUpload()
         echo "upload to svr fail, code:$extcode"
         exit 1
     fi 
+    code=$(echo $data | jq -r ".code")
+    if [ "$code" != "0" ]; then 
+        echo "$data"
+        exit 1
+    fi 
     downkey=$(echo $data | jq -r ".data.down_key")
 
     echo "read downkey from server:$downkey"
@@ -105,6 +110,10 @@ function doRemove()
 if [ "$#" == "0" ]; then 
     echo "try $0 [install|remove|\${file}]"
     exit 2
+fi 
+
+if [ "$ENV" == "test" ]; then 
+    CONFIG=$CONFIG.test
 fi 
 
 p1=$1
