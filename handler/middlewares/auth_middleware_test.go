@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"fileserver/utils"
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -20,10 +19,7 @@ func TestCodeAuth(t *testing.T) {
 	sk := "123456"
 	now := time.Now().Unix()
 
-	r.Header.Set("x-fs-ak", ak)
-	r.Header.Set("x-fs-ts", fmt.Sprintf("%d", now))
-	code := utils.GetMd5([]byte(fmt.Sprintf("%s:%s:%d", ak, sk, now)))
-	r.Header.Set("x-fs-code", code)
+	utils.CreateCodeAuthRequest(r, ak, sk, uint64(now))
 
 	{
 		users := map[string]string{
