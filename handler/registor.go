@@ -6,17 +6,13 @@ import (
 	"fileserver/handler/middlewares"
 	"fileserver/handler/s3"
 	"fileserver/proto/fileserver/fileinfo"
+	"fmt"
 
 	"github.com/xxxsen/common/naivesvr"
 	"github.com/xxxsen/common/naivesvr/codec"
 
 	"github.com/gin-gonic/gin"
 )
-
-type RegistConfig struct {
-	User string
-	Pwd  string
-}
 
 func OnRegistWithConfig(opts ...Option) func(router *gin.Engine) {
 	return func(router *gin.Engine) {
@@ -57,11 +53,16 @@ func OnRegist(router *gin.Engine, opts ...Option) {
 	{
 		router.POST("/file/meta", naivesvr.WrapHandler(&fileinfo.GetFileMetaRequest{}, codec.JsonCodec, file.Meta))
 	}
-	//s3
-	{
-		//
-		s3Prefix := "/s3/"
-		router.GET("/s3/*s3Param", downloadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(s3Prefix), s3.S3Get)
-		router.PUT("/s3/*s3Param", uploadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(s3Prefix), s3.S3Put)
+	registS3(router, c, downloadLimitMiddleware, uploadLimitMiddleware)
+}
+
+func registS3(router *gin.Engine, c *config, downloadLimitMiddleware, uploadLimitMiddleware gin.HandlerFunc) {
+	if !c.enableFakeS3 {
+		return
+	}
+	for _, bk := range c.fakeS3Buckets {
+		routerPath := fmt.Sprintf("/%s/*s3Param", bk)
+		router.GET(routerPath, downloadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), s3.S3Get)
+		router.PUT(routerPath, uploadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), s3.S3Put)
 	}
 }

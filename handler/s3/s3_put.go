@@ -24,7 +24,7 @@ const (
 	maxS3UploadFileLimit = 10 * 1024 * 1024 //
 )
 
-func Upload(ctx *gin.Context) {
+func upload(ctx *gin.Context) {
 	md5Base64 := ctx.Request.Header.Get("Content-MD5")
 	length := ctx.Request.ContentLength
 
@@ -86,5 +86,5 @@ func S3Put(ctx *gin.Context) {
 		s3base.WriteError(ctx, http.StatusInternalServerError, errs.New(errs.ErrParam, "no file found"))
 		return
 	}
-	Upload(ctx)
+	upload(ctx)
 }

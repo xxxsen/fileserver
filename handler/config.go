@@ -4,6 +4,8 @@ type config struct {
 	users             map[string]string
 	maxUploadThread   int
 	maxDownloadThread int
+	enableFakeS3      bool
+	fakeS3Buckets     []string
 }
 
 type Option func(c *config)
@@ -31,5 +33,17 @@ func WithMaxUploadThread(cnt int) Option {
 func WithMaxDownloadThread(cnt int) Option {
 	return func(c *config) {
 		c.maxDownloadThread = cnt
+	}
+}
+
+func WithEnableFakeS3(v bool) Option {
+	return func(c *config) {
+		c.enableFakeS3 = v
+	}
+}
+
+func WithFakeS3BucketList(s []string) Option {
+	return func(c *config) {
+		c.fakeS3Buckets = s
 	}
 }

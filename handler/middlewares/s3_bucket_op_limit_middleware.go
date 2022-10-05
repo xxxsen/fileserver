@@ -9,7 +9,7 @@ import (
 	"github.com/xxxsen/common/errs"
 )
 
-func S3BucketOpLimitMiddleware(prefix string) gin.HandlerFunc {
+func S3BucketOpLimitMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		switch ctx.Request.Method {
 		case http.MethodGet, http.MethodPut:
@@ -18,13 +18,6 @@ func S3BucketOpLimitMiddleware(prefix string) gin.HandlerFunc {
 			return
 		}
 		path := ctx.Request.URL.Path
-		if len(prefix) > 0 {
-			if !strings.HasPrefix(path, prefix) {
-				s3base.WriteError(ctx, http.StatusBadRequest, errs.New(errs.ErrParam, "not contains prefix:%s", prefix))
-				return
-			}
-			path = strings.TrimLeft(path, prefix)
-		}
 		path = strings.Trim(path, "/")
 		parts := strings.SplitN(path, "/", 2)
 		bucket := parts[0]

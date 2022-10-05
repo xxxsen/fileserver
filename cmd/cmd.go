@@ -52,6 +52,8 @@ func main() {
 			handler.WithUsers(c.AuthInfo),
 			handler.WithMaxDownloadThread(c.IOInfo.MaxDownloadThread),
 			handler.WithMaxUploadThread(c.IOInfo.MaxUploadThread),
+			handler.WithEnableFakeS3(c.FakeS3Info.Enable),
+			handler.WithFakeS3BucketList(c.FakeS3Info.BucketList),
 		)),
 		naivesvr.WithAttach(constants.KeyStorageClient, fs),
 	)

@@ -27,6 +27,11 @@ type IOConfig struct {
 	MaxDownloadThread int `json:"max_download_thread"`
 }
 
+type FakeS3Config struct {
+	Enable     bool     `json:"enable"`
+	BucketList []string `json:"bucket_list"`
+}
+
 type Config struct {
 	LogInfo    logger.LogConfig       `json:"log_info"`
 	FileDBInfo database.DBConfig      `json:"file_db_info"`
@@ -36,6 +41,7 @@ type Config struct {
 	UploadFs   string                 `json:"upload_fs"`
 	AuthInfo   map[string]string      `json:"auth_info"`
 	IOInfo     IOConfig               `json:"io_info"`
+	FakeS3Info FakeS3Config           `json:"fake_s3_info"`
 }
 
 func Parse(f string) (*Config, error) {
