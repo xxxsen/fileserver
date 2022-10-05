@@ -14,7 +14,7 @@ import (
 
 const (
 	defaultMaxS3FileSize   = 4 * 1024 * 1024 * 1024
-	defaultS3FileBlockSize = 200 * 1024 * 1024
+	defaultS3FileBlockSize = 20 * 1024 * 1024
 )
 
 type S3Core struct {
