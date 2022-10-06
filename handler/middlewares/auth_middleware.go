@@ -45,7 +45,7 @@ func (c *codeAuth) Auth(ctx *gin.Context, users map[string]string) (string, bool
 	}
 	its, _ := strconv.ParseUint(ts, 10, 64)
 	now := time.Now().Unix()
-	if its+60 < uint64(now) {
+	if its < uint64(now) {
 		return "", false, errs.New(errs.ErrParam, "code expire, ts:%s", ts)
 	}
 	realCode := utils.GetMd5([]byte(fmt.Sprintf("%s:%s:%s", ak, sk, ts)))

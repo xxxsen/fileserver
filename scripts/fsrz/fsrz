@@ -59,6 +59,7 @@ function doUpload()
     echo "read download domain:$DOWNLOAD_DOMAIN"
 
     ts=$(date "+%s")
+    ts=$((ts+60))
     skcode=$(echo -n $AK":"$SK":$ts"|md5sum|cut -d ' ' -f1)
     data=$(curl -f -s -L -X POST "${SCHEMA}://${UPLOAD_DOMAIN}/upload/file" \
     -H "x-fs-code: ${skcode}" \
