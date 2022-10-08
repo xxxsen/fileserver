@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func download(ctx *gin.Context) {
+func Download(ctx *gin.Context) {
 	bucket, _ := s3base.GetS3Bucket(ctx)
 	obj, _ := s3base.GetS3Object(ctx)
 	filename := fmt.Sprintf("%s/%s", bucket, obj)
@@ -42,16 +42,6 @@ func download(ctx *gin.Context) {
 	logutil.GetLogger(ctx).With(zap.String("bucket", bucket), zap.String("obj", obj)).Info("download file finish")
 }
 
-func getBucket(ctx *gin.Context) {
+func GetBucket(ctx *gin.Context) {
 	s3base.SimpleReply(ctx)
-}
-
-func S3Get(ctx *gin.Context) {
-	//hackmd 上傳前必定會先get bucket, 所以給個假回復。。
-	_, exist := s3base.GetS3Object(ctx)
-	if !exist {
-		getBucket(ctx)
-		return
-	}
-	download(ctx)
 }

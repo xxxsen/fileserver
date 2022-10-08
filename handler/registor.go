@@ -65,8 +65,10 @@ func registS3(router *gin.Engine, c *config, downloadLimitMiddleware, uploadLimi
 		return
 	}
 	for _, bk := range c.fakeS3Buckets {
-		routerPath := fmt.Sprintf("/%s/*s3Param", bk)
-		router.GET(routerPath, downloadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), s3.S3Get)
-		router.PUT(routerPath, uploadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), s3.S3Put)
+		bucketPath := fmt.Sprintf("/%s", bk)
+		routerPath := fmt.Sprintf("%s/*s3Param", bucketPath)
+		router.GET(bucketPath, middlewares.S3BucketOpLimitMiddleware(), s3.GetBucket)
+		router.GET(routerPath, downloadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), s3.Download)
+		router.PUT(routerPath, uploadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), s3.Upload)
 	}
 }
