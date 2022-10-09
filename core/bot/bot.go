@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
@@ -36,9 +37,10 @@ type TGBot struct {
 }
 
 const (
-	defaultMaxTGBotFileSize    = 4 * 1024 * 1024 * 1024
-	defaultTGBotFileBlockSize  = 20 * 1024 * 1024
-	defaultPartDataStoreLength = 160
+	defaultMaxTGBotFileSize     = 4 * 1024 * 1024 * 1024
+	defaultTGBotFileBlockSize   = 20 * 1024 * 1024
+	defaultPartDataStoreLength  = 160
+	defaultTmpUploadCtxKeepTime = 3 * 24 * time.Hour
 )
 
 func New(opts ...Option) (*TGBot, error) {
@@ -59,7 +61,15 @@ func New(opts ...Option) (*TGBot, error) {
 	}
 	metaCache, _ := lru.New(10000)
 
-	return &TGBot{c: c, metaCache: metaCache, bot: botClient, bothash: calcBotHash(c.chatid, c.token)}, nil
+	bt := &TGBot{c: c, metaCache: metaCache, bot: botClient, bothash: calcBotHash(c.chatid, c.token)}
+	if err := bt.ensureUploadFolderExist(); err != nil {
+		return nil, errs.Wrap(errs.ErrIO, "check upload folder exist fail", err)
+	}
+	core.AddCleanTask(&core.CleanEntry{
+		Dir:  bt.tmpDir(),
+		Keep: defaultTmpUploadCtxKeepTime,
+	})
+	return bt, nil
 }
 
 func calcBotHash(chatid int64, token string) uint32 {
@@ -257,7 +267,7 @@ func (c *TGBot) FileDownload(ctx context.Context, fctx *core.FileDownloadRequest
 }
 
 func (c *TGBot) tmpDir() string {
-	return c.c.tmpdir + string(filepath.Separator) + defaultUploadFolder
+	return fmt.Sprintf("%s%s%s%s%d", c.c.tmpdir, string(filepath.Separator), defaultUploadFolder, string(filepath.Separator), c.GetBotHash())
 }
 
 func (c *TGBot) ensureUploadFolderExist() error {

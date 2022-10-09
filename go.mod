@@ -11,6 +11,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hnlq715/golang-lru v0.3.0
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.8.0
 	github.com/xxxsen/common v0.0.10
 	go.uber.org/zap v1.23.0
