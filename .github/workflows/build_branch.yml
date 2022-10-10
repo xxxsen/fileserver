@@ -11,7 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Echo Ref
-        run: echo ${GITHUB_REF_NAME}
+        id: ref_branch
+        run: echo "::set-output name=branch::${GITHUB_REF_NAME}"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -28,4 +29,4 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          tags: ${{ secrets.DOCKER_USER }}/file_server:${GITHUB_REF_NAME}
+          tags: ${{ secrets.DOCKER_USER }}/file_server:${{ steps.ref_branch.outputs.branch }}
