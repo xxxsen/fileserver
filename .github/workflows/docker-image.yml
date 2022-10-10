@@ -28,4 +28,4 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          tags: xxxsen/file_server:latest,xxxsen/file_server:${{steps.tag.outputs.tag}}
+          tags: ${{ secrets.DOCKER_USER }}/file_server:latest,${{ secrets.DOCKER_USER }}/file_server:${{steps.tag.outputs.tag}}
