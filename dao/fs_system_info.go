@@ -28,12 +28,9 @@ type FsSystemService interface {
 	Root() uint64
 	List(ctx context.Context, req *model.ListFsItemRequest) (*model.ListFsItemResponse, error)
 	Remove(ctx context.Context, req *model.RemoveFsItemRequest) (*model.RemoveFsItemResponse, error)
-	TxCreate(ctx context.Context, tx db.IExecutor, req *model.CreateFsItemRequest) (*model.CreateFsItemResponse, error)
 	Create(ctx context.Context, req *model.CreateFsItemRequest) (*model.CreateFsItemResponse, error)
 	Modify(ctx context.Context, req *model.ModifyFsItemRequest) (*model.ModifyFsItemResponse, error)
-	TxInfo(ctx context.Context, tx db.IQueryer, req *model.InfoFsItemRequest) (*model.InfoFsItemResponse, error)
 	Info(ctx context.Context, req *model.InfoFsItemRequest) (*model.InfoFsItemResponse, error)
-	TxMove(ctx context.Context, tx db.IExecutor, req *model.MoveFsItemRequest) (*model.MoveFsItemResponse, error)
 	Move(ctx context.Context, req *model.MoveFsItemRequest) (*model.MoveFsItemResponse, error)
 }
 
@@ -137,7 +134,7 @@ func (f *fsSystemImpl) Remove(ctx context.Context, req *model.RemoveFsItemReques
 	return &model.RemoveFsItemResponse{}, nil
 }
 
-func (f *fsSystemImpl) TxMove(ctx context.Context, tx db.IExecutor, req *model.MoveFsItemRequest) (*model.MoveFsItemResponse, error) {
+func (f *fsSystemImpl) Move(ctx context.Context, req *model.MoveFsItemRequest) (*model.MoveFsItemResponse, error) {
 	where := map[string]interface{}{
 		"id": req.SrcID,
 	}
@@ -148,33 +145,13 @@ func (f *fsSystemImpl) TxMove(ctx context.Context, tx db.IExecutor, req *model.M
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrParam, "build update fail", err)
 	}
-	if _, err := tx.ExecContext(ctx, sql, args...); err != nil {
+	if _, err := f.Client().ExecContext(ctx, sql, args...); err != nil {
 		return nil, errs.Wrap(errs.ErrDatabase, "exec move fail", err)
 	}
 	return &model.MoveFsItemResponse{}, nil
 }
 
-func (f *fsSystemImpl) Move(ctx context.Context, req *model.MoveFsItemRequest) (*model.MoveFsItemResponse, error) {
-	tx, err := f.Client().Begin()
-	if err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "begin tx fail", err)
-	}
-	defer tx.Rollback()
-
-	if err := f.isExistFolder(ctx, tx, req.ToParentID); err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "check id fail", err)
-	}
-	rsp, err := f.TxMove(ctx, tx, req)
-	if err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "do move fail", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "commit move fail", err)
-	}
-	return rsp, nil
-}
-
-func (f *fsSystemImpl) TxCreate(ctx context.Context, tx db.IExecutor, req *model.CreateFsItemRequest) (*model.CreateFsItemResponse, error) {
+func (f *fsSystemImpl) Create(ctx context.Context, req *model.CreateFsItemRequest) (*model.CreateFsItemResponse, error) {
 	data := []map[string]interface{}{
 		{
 			"parent_id": req.Item.ParentID,
@@ -191,7 +168,7 @@ func (f *fsSystemImpl) TxCreate(ctx context.Context, tx db.IExecutor, req *model
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrParam, "insert record fail", err)
 	}
-	rs, err := tx.ExecContext(ctx, sql, args...)
+	rs, err := f.Client().ExecContext(ctx, sql, args...)
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrDatabase, "exec insert fail", err)
 	}
@@ -202,27 +179,6 @@ func (f *fsSystemImpl) TxCreate(ctx context.Context, tx db.IExecutor, req *model
 	return &model.CreateFsItemResponse{
 		ID: uint64(lstid),
 	}, nil
-}
-
-func (f *fsSystemImpl) Create(ctx context.Context, req *model.CreateFsItemRequest) (*model.CreateFsItemResponse, error) {
-	tx, err := f.Client().Begin()
-	if err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "begin tx fail", err)
-	}
-	defer tx.Rollback()
-	//check parent exist and parent should be a folder
-	//shall we do this logic in dao?
-	if err := f.isExistFolder(ctx, tx, req.Item.ParentID); err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "check id fail", err)
-	}
-	rsp, err := f.TxCreate(ctx, tx, req)
-	if err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "do create fail", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "commit create fail", err)
-	}
-	return rsp, nil
 }
 
 func (f *fsSystemImpl) Modify(ctx context.Context, req *model.ModifyFsItemRequest) (*model.ModifyFsItemResponse, error) {
@@ -252,26 +208,6 @@ func (f *fsSystemImpl) Modify(ctx context.Context, req *model.ModifyFsItemReques
 }
 
 func (f *fsSystemImpl) Info(ctx context.Context, req *model.InfoFsItemRequest) (*model.InfoFsItemResponse, error) {
-	return f.TxInfo(ctx, f.Client(), req)
-}
-
-func (f *fsSystemImpl) isExistFolder(ctx context.Context, tx db.IQueryer, id uint64) error {
-	infoRsp, err := f.TxInfo(ctx, tx, &model.InfoFsItemRequest{
-		ID: id,
-	})
-	if err != nil {
-		return errs.Wrap(errs.ErrDatabase, "read id info fail", err)
-	}
-	if !infoRsp.Exist {
-		return errs.New(errs.ErrParam, "id not found")
-	}
-	if infoRsp.Item.FileType != uint32(model.FsItemTypeFolder) {
-		return errs.New(errs.ErrParam, "id not folder")
-	}
-	return nil
-}
-
-func (f *fsSystemImpl) TxInfo(ctx context.Context, tx db.IQueryer, req *model.InfoFsItemRequest) (*model.InfoFsItemResponse, error) {
 	where := map[string]interface{}{
 		"id": req.ID,
 	}
@@ -280,7 +216,7 @@ func (f *fsSystemImpl) TxInfo(ctx context.Context, tx db.IQueryer, req *model.In
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrParam, "build select fail", err)
 	}
-	row := tx.QueryRowContext(ctx, qSql, args...)
+	row := f.Client().QueryRowContext(ctx, qSql, args...)
 	item := &model.FsItem{}
 	err = row.Scan(&item.ID, &item.ParentID, &item.NameCode, &item.FileName, &item.FileType, &item.FileSize, &item.CTime, &item.MTime, &item.DownKey)
 	if err == sql.ErrNoRows {
