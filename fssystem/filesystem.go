@@ -1,8 +1,7 @@
-package dbsystem
+package fssystem
 
 import (
 	"context"
-	"fileserver/fssystem"
 	"fileserver/model"
 	"fmt"
 	"time"
@@ -49,7 +48,7 @@ func (f *DBFileSystem) existNode(ctx context.Context, id uint64, name string) (b
 	return true, nil
 }
 
-func (f *DBFileSystem) Mkdir(ctx context.Context, req *fssystem.MkdirRequest) (*fssystem.MkdirResponse, error) {
+func (f *DBFileSystem) Mkdir(ctx context.Context, req *MkdirRequest) (*MkdirResponse, error) {
 	if len(req.Name) == 0 {
 		return nil, errs.New(errs.ErrParam, "nil name")
 	}
@@ -85,11 +84,11 @@ func (f *DBFileSystem) Mkdir(ctx context.Context, req *fssystem.MkdirRequest) (*
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrDatabase, "create fail", err)
 	}
-	return &fssystem.MkdirResponse{ID: rsp.ID}, nil
+	return &MkdirResponse{ID: rsp.ID}, nil
 }
 
-func (f *DBFileSystem) fsItem2fileItem(fsitem *model.FsItem) *fssystem.FileItem {
-	return &fssystem.FileItem{
+func (f *DBFileSystem) fsItem2fileItem(fsitem *model.FsItem) *FileItem {
+	return &FileItem{
 		ID:       fsitem.ID,
 		ParentID: fsitem.ParentID,
 		FileName: fsitem.FileName,
@@ -101,7 +100,7 @@ func (f *DBFileSystem) fsItem2fileItem(fsitem *model.FsItem) *fssystem.FileItem 
 	}
 }
 
-func (f *DBFileSystem) List(ctx context.Context, req *fssystem.ListRequest) (*fssystem.ListResponse, error) {
+func (f *DBFileSystem) List(ctx context.Context, req *ListRequest) (*ListResponse, error) {
 	info, exist, err := f.ps.Resolve(ctx, req.Location)
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrDatabase, "resolve path fail", err)
@@ -119,7 +118,7 @@ func (f *DBFileSystem) List(ctx context.Context, req *fssystem.ListRequest) (*fs
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrDatabase, "list fail", err)
 	}
-	rsp := &fssystem.ListResponse{
+	rsp := &ListResponse{
 		Total: innerRsp.Total,
 	}
 	for _, item := range innerRsp.Items {
@@ -128,7 +127,7 @@ func (f *DBFileSystem) List(ctx context.Context, req *fssystem.ListRequest) (*fs
 	return rsp, nil
 }
 
-func (f *DBFileSystem) CreateFile(ctx context.Context, req *fssystem.CreateFileRequest) (*fssystem.CreateFileResponse, error) {
+func (f *DBFileSystem) CreateFile(ctx context.Context, req *CreateFileRequest) (*CreateFileResponse, error) {
 	folderinfo, exist, err := f.ps.Resolve(ctx, req.Location)
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrDatabase, "resolve path fail", err)
@@ -162,12 +161,12 @@ func (f *DBFileSystem) CreateFile(ctx context.Context, req *fssystem.CreateFileR
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrDatabase, "create file item fail", err)
 	}
-	return &fssystem.CreateFileResponse{
+	return &CreateFileResponse{
 		ID: rsp.ID,
 	}, nil
 }
 
-func (f *DBFileSystem) OpenFile(ctx context.Context, req *fssystem.OpenFileRequest) (*fssystem.OpenFileResponse, error) {
+func (f *DBFileSystem) OpenFile(ctx context.Context, req *OpenFileRequest) (*OpenFileResponse, error) {
 	if len(req.Name) == 0 {
 		return nil, errs.New(errs.ErrParam, "nil name")
 	}
@@ -179,13 +178,13 @@ func (f *DBFileSystem) OpenFile(ctx context.Context, req *fssystem.OpenFileReque
 	if !exist {
 		return nil, errs.New(errs.ErrNotFound, "file not found")
 	}
-	return &fssystem.OpenFileResponse{
+	return &OpenFileResponse{
 		DownKey: item.DownKey,
 		Size:    item.FileSize,
 	}, nil
 }
 
-func (f *DBFileSystem) Info(ctx context.Context, req *fssystem.InfoRequest) (*fssystem.InfoResponse, error) {
+func (f *DBFileSystem) Info(ctx context.Context, req *InfoRequest) (*InfoResponse, error) {
 	info, exist, err := f.ps.Resolve(ctx, req.Location)
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrDatabase, "resolve path fail", err)
@@ -199,7 +198,7 @@ func (f *DBFileSystem) Info(ctx context.Context, req *fssystem.InfoRequest) (*fs
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrDatabase, "info fail", err)
 	}
-	rsp := &fssystem.InfoResponse{
+	rsp := &InfoResponse{
 		Exist: innerRsp.Exist,
 	}
 	if !innerRsp.Exist {
@@ -209,7 +208,7 @@ func (f *DBFileSystem) Info(ctx context.Context, req *fssystem.InfoRequest) (*fs
 	return rsp, nil
 }
 
-func (f *DBFileSystem) Rename(ctx context.Context, req *fssystem.RenameRequest) (*fssystem.RenameResponse, error) {
+func (f *DBFileSystem) Rename(ctx context.Context, req *RenameRequest) (*RenameResponse, error) {
 	srcpts := f.ps.PathAsArray(req.SrcLocation)
 	if len(srcpts) == 0 {
 		return nil, errs.New(errs.ErrParam, "not allow to move root node")
@@ -239,5 +238,5 @@ func (f *DBFileSystem) Rename(ctx context.Context, req *fssystem.RenameRequest) 
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrDatabase, "move fail", err)
 	}
-	return &fssystem.RenameResponse{}, nil
+	return &RenameResponse{}, nil
 }

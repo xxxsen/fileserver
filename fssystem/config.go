@@ -1,4 +1,4 @@
-package dbsystem
+package fssystem
 
 import (
 	"fileserver/dao"
