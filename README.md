@@ -106,9 +106,11 @@ services:
 
 ### 本地命令行
 
+#### shell 脚本
+
 下面的配置是在自己的机器上运行的, 不是服务器!!!
 
-linux下测试是ok的, windows应该是不行的(WSL是ok的)
+linux下测试是ok的, windows应该是不行的(WSL是ok的), 如需要在非linux下使用, 可以使用下面的`golang客户端`
 
 进入到`scripts/fsrz` 目录, 执行`sudo ./fsrz install` 进行安装即可, 安装脚本会创建`/etc/fsrz/`目录, 并生成模板文件`config.tplt`, 这里需要复制这个模板文件, 重命名为`config`(最终配置路径: `/etc/fsrz/config`)并修改其中的配置, 下面是参考模板。
 
@@ -134,3 +136,7 @@ read downkey from server:000134a51f3ba085
 ========
 https://fs.mydomain.cc/file?down_key=000134a51f3ba085
 ```
+
+#### golang客户端
+
+通过镜像`xxxsen/fsrz` 获取, 使用方式参考`docker run -it --rm xxxsen/fsrz --help`
