@@ -19,7 +19,7 @@ file_server
         "file": "/tmp/fileserver.log",
         "file_size": 20971520,
         "file_count": 5,
-        "kee_days": 30
+        "keep_days": 30
     },
     "file_db_info": {
         "host": "db",
