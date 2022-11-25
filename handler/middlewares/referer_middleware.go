@@ -39,12 +39,12 @@ func RefererMiddleware(enable bool, valids []string) gin.HandlerFunc {
 		}
 		uri, err := url.Parse(ctx.Request.Referer())
 		if err != nil {
-			logger.With(zap.Error(err), zap.String("referer", ctx.Request.Referer())).Error("decode referer fail")
+			logger.Error("decode referer fail", zap.Error(err), zap.String("referer", ctx.Request.Referer()))
 			ctx.AbortWithError(http.StatusForbidden, errInvalidReferer)
 			return
 		}
 		if _, ok := m[uri.Host]; !ok {
-			logger.With(zap.String("referer_host", uri.Host)).Error("referer not in white list")
+			logger.Error("referer not in white list", zap.String("referer_host", uri.Host))
 			ctx.AbortWithError(http.StatusForbidden, errInvalidReferer)
 			return
 		}

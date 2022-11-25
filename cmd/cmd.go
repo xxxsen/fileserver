@@ -37,14 +37,14 @@ func main() {
 
 	logger.Info("recv config", zap.Any("config", c))
 	if err := db.InitFileDB(&c.FileDBInfo); err != nil {
-		logger.With(zap.Error(err)).Fatal("init media db fail")
+		logger.Fatal("init media db fail", zap.Error(err))
 	}
 	if err := idgen.Init(c.IDGenInfo.WorkerID); err != nil {
-		logger.With(zap.Error(err)).Fatal("init idgen fail")
+		logger.Fatal("init idgen fail", zap.Error(err))
 	}
 	fs, err := initStorage(c)
 	if err != nil {
-		logger.With(zap.Error(err)).Fatal("init storage fail")
+		logger.Fatal("init storage fail", zap.Error(err))
 	}
 	svr, err := naivesvr.NewServer(
 		naivesvr.WithAddress(c.ServerInfo.Address),
@@ -60,10 +60,10 @@ func main() {
 		naivesvr.WithAttach(constants.KeyStorageClient, fs),
 	)
 	if err != nil {
-		logger.With(zap.Error(err)).Fatal("init server fail")
+		logger.Fatal("init server fail", zap.Error(err))
 	}
 	if err := svr.Run(); err != nil {
-		logger.With(zap.Error(err)).Fatal("run server fail")
+		logger.Fatal("run server fail", zap.Error(err))
 	}
 }
 
@@ -108,7 +108,7 @@ func decodeToType(src interface{}, dst interface{}) error {
 	if err := c.Decode(src); err != nil {
 		return errs.Wrap(errs.ErrUnmarshal, "decode type fail", err)
 	}
-	logutil.GetLogger(context.Background()).With(zap.Any("src", src), zap.Any("dst", dst)).Debug("decode type finish")
+	logutil.GetLogger(context.Background()).Debug("decode type finish", zap.Any("src", src), zap.Any("dst", dst))
 	return nil
 }
 

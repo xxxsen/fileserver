@@ -121,12 +121,12 @@ func CommonAuthMiddleware(users map[string]string, ats ...IAuth) gin.HandlerFunc
 		for _, fn := range ats {
 			ak, ok, err := fn.Auth(ctx, users)
 			if err != nil {
-				logger.With(zap.String("auth", fn.Name()), zap.Error(err)).Error("auth error")
+				logger.Error("auth error", zap.String("auth", fn.Name()), zap.Error(err))
 				ctx.AbortWithError(http.StatusUnauthorized, errs.Wrap(errs.ErrUnknown, "internal services error", err))
 				return
 			}
 			if ok {
-				logger.With(zap.String("auth", fn.Name()), zap.String("ak", ak)).Debug("user auth succ")
+				logger.Debug("user auth succ", zap.String("auth", fn.Name()), zap.String("ak", ak))
 				return
 			}
 		}

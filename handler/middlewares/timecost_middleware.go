@@ -15,7 +15,7 @@ func TimeCostMiddleware() gin.HandlerFunc {
 		logger.Debug("recv request")
 		defer func() {
 			cost := time.Since(start)
-			logger.With(zap.Int64("cost(ms)", int64(cost/time.Millisecond))).Debug("handle request finish")
+			logger.Debug("handle request finish", zap.Int64("cost(ms)", int64(cost/time.Millisecond)))
 		}()
 		ctx.Next()
 	}
