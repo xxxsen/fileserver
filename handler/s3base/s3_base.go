@@ -60,7 +60,7 @@ func SimpleReply(ctx *gin.Context) {
 		"<LocationConstraint xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"></LocationConstraint>")
 	_, err := ctx.Writer.Write(data)
 	if err != nil {
-		logutil.GetLogger(ctx).With(zap.Error(err)).Error("write msg fail")
+		logutil.GetLogger(ctx).Error("write msg fail", zap.Error(err))
 		return
 	}
 }
@@ -68,12 +68,11 @@ func SimpleReply(ctx *gin.Context) {
 func WriteError(ctx *gin.Context, statuscode int, err errs.IError) {
 	bucket, _ := GetS3Bucket(ctx)
 	obj, _ := GetS3Object(ctx)
-	logutil.GetLogger(ctx).With(
+	logutil.GetLogger(ctx).Error("write err to client",
 		zap.Int("status_code", statuscode),
 		zap.String("bucket", bucket),
 		zap.String("obj", obj),
-		zap.Error(err),
-	).Error("write err to client")
+		zap.Error(err))
 	traceid, _ := trace.GetTraceId(ctx)
 	e := &S3ErrorMessage{
 		Code:       fmt.Sprintf("%d", err.Code()),

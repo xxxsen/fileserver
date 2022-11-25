@@ -147,11 +147,9 @@ func initMultiTGBotCore(param interface{}) (core.IFsCore, error) {
 			return nil, errs.Wrap(errs.ErrStorage,
 				fmt.Sprintf("init tg bot fail, chatid:%d, token:%s", botInfo.Chatid, botInfo.Token), err)
 		}
-		logutil.GetLogger(context.Background()).With(
-			zap.Int64("chatid", botcore.GetChatId()),
+		logutil.GetLogger(context.Background()).Info("init bot succ", zap.Int64("chatid", botcore.GetChatId()),
 			zap.String("token", botcore.GetToken()),
-			zap.Uint32("bothash", botcore.GetBotHash()),
-		).Info("init bot succ")
+			zap.Uint32("bothash", botcore.GetBotHash()))
 		cores = append(cores, botcore)
 	}
 	return bot.NewMultiBot(cores...)

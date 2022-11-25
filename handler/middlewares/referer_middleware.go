@@ -28,7 +28,8 @@ func RefererMiddleware(enable bool, valids []string) gin.HandlerFunc {
 		if !enable {
 			return
 		}
-		logger := logutil.GetLogger(ctx).With(zap.String("method", ctx.Request.Method), zap.String("path", ctx.Request.URL.Path), zap.String("ip", ctx.ClientIP()))
+		logger := logutil.GetLogger(ctx).With(zap.String("method", ctx.Request.Method),
+			zap.String("path", ctx.Request.URL.Path), zap.String("ip", ctx.ClientIP()))
 		if len(ctx.Request.Referer()) == 0 {
 			if !supportNil {
 				ctx.AbortWithError(http.StatusForbidden, errInvalidReferer)

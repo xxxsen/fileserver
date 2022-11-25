@@ -117,7 +117,9 @@ func CommonAuth(users map[string]string) gin.HandlerFunc {
 
 func CommonAuthMiddleware(users map[string]string, ats ...IAuth) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		logger := logutil.GetLogger(ctx).With(zap.String("method", ctx.Request.Method), zap.String("path", ctx.Request.URL.Path), zap.String("ip", ctx.ClientIP()))
+		logger := logutil.GetLogger(ctx).With(zap.String("method", ctx.Request.Method),
+			zap.String("path", ctx.Request.URL.Path), zap.String("ip", ctx.ClientIP()))
+
 		for _, fn := range ats {
 			ak, ok, err := fn.Auth(ctx, users)
 			if err != nil {

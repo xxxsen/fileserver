@@ -55,9 +55,9 @@ func streamDownload(ctx *gin.Context, downKey uint64, fs core.IFsCore, fileinfo 
 		return nil
 	}
 	if sz != int64(fileinfo.FileSize) {
-		logutil.GetLogger(ctx).With(zap.Error(err),
+		logutil.GetLogger(ctx).Error("io size not match", zap.Error(err),
 			zap.Uint64("key", downKey), zap.Uint64("need_size", fileinfo.FileSize),
-			zap.Int64("write_size", sz)).Error("io size not match")
+			zap.Int64("write_size", sz))
 		return nil
 	}
 	return nil

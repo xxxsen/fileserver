@@ -39,7 +39,7 @@ func Download(ctx *gin.Context) {
 		s3base.WriteError(ctx, http.StatusInternalServerError, errs.Wrap(errs.ErrServiceInternal, "do download fail", err))
 		return
 	}
-	logutil.GetLogger(ctx).With(zap.String("bucket", bucket), zap.String("obj", obj)).Info("download file finish")
+	logutil.GetLogger(ctx).Info("download file finish", zap.String("bucket", bucket), zap.String("obj", obj))
 }
 
 func GetBucket(ctx *gin.Context) {

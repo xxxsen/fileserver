@@ -77,5 +77,5 @@ func Upload(ctx *gin.Context) {
 	}
 	ctx.Writer.Header().Set("ETag", `"`+checksum+`"`)
 	ctx.Writer.WriteHeader(http.StatusOK)
-	logutil.GetLogger(ctx).With(zap.String("bucket", bucket), zap.String("obj", obj)).Info("upload file finish")
+	logutil.GetLogger(ctx).Info("upload file finish", zap.String("bucket", bucket), zap.String("obj", obj))
 }
