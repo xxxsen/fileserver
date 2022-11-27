@@ -65,15 +65,16 @@ func SimpleReply(ctx *gin.Context) {
 	}
 }
 
-func WriteError(ctx *gin.Context, statuscode int, err errs.IError) {
+func WriteError(ctx *gin.Context, statuscode int, xerr error) {
 	bucket, _ := GetS3Bucket(ctx)
 	obj, _ := GetS3Object(ctx)
 	logutil.GetLogger(ctx).Error("write err to client",
 		zap.Int("status_code", statuscode),
 		zap.String("bucket", bucket),
 		zap.String("obj", obj),
-		zap.Error(err))
+		zap.Error(xerr))
 	traceid, _ := trace.GetTraceId(ctx)
+	err := errs.FromError(xerr)
 	e := &S3ErrorMessage{
 		Code:       fmt.Sprintf("%d", err.Code()),
 		Message:    err.Message(),
