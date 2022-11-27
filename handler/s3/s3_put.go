@@ -90,9 +90,6 @@ func bigFileUpload(ctx *gin.Context) (uint64, string, error) {
 		return 0, "", errs.Wrap(errs.ErrServiceInternal, "write file to db fail", err)
 	}
 	return fileid, rsp.CheckSum, nil
-	// ctx.Writer.Header().Set("ETag", `"`+rsp.CheckSum+`"`)
-	// ctx.Writer.WriteHeader(http.StatusOK)
-	// logutil.GetLogger(ctx).Info("upload big file finish", zap.String("bucket", bucket), zap.String("obj", obj))
 }
 
 func smallFileUpload(ctx *gin.Context) (uint64, string, error) {
