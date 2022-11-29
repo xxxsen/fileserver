@@ -9,6 +9,7 @@ import (
 	"fileserver/core/s3"
 	"fileserver/db"
 	"fileserver/handler"
+	_ "fileserver/handler/middlewares/auth"
 	"flag"
 	"fmt"
 	"strings"

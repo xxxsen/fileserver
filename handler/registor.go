@@ -57,10 +57,10 @@ func OnRegist(router *gin.Engine, opts ...Option) {
 	{
 		router.POST("/file/meta", naivesvr.WrapHandler(&fileinfo.GetFileMetaRequest{}, codec.JsonCodec, file.Meta))
 	}
-	registS3(router, c, downloadLimitMiddleware, uploadLimitMiddleware)
+	registS3(router, c, authMiddleware, downloadLimitMiddleware, uploadLimitMiddleware)
 }
 
-func registS3(router *gin.Engine, c *config, downloadLimitMiddleware, uploadLimitMiddleware gin.HandlerFunc) {
+func registS3(router *gin.Engine, c *config, authMiddleware, downloadLimitMiddleware, uploadLimitMiddleware gin.HandlerFunc) {
 	if !c.enableFakeS3 {
 		return
 	}
@@ -69,6 +69,6 @@ func registS3(router *gin.Engine, c *config, downloadLimitMiddleware, uploadLimi
 		routerPath := fmt.Sprintf("%s/*s3Param", bucketPath)
 		router.GET(bucketPath, middlewares.S3BucketOpLimitMiddleware(), s3.GetBucket)
 		router.GET(routerPath, downloadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), s3.Download)
-		router.PUT(routerPath, uploadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), s3.Upload)
+		router.PUT(routerPath, authMiddleware, uploadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), s3.Upload)
 	}
 }
