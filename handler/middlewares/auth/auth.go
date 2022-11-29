@@ -16,6 +16,14 @@ type AuthCreateFunc func() IAuth
 
 var mp = make(map[string]AuthCreateFunc)
 
+func MustCreateByName(name string) IAuth {
+	at, err := CreateByName(name)
+	if err != nil {
+		panic(err)
+	}
+	return at
+}
+
 func CreateByName(name string) (IAuth, error) {
 	if v, ok := mp[name]; ok {
 		return v(), nil
@@ -28,7 +36,7 @@ func Regist(name string, fn AuthCreateFunc) {
 }
 
 func AuthList() []string {
-	rs := make([]string, len(mp))
+	rs := make([]string, 0, len(mp))
 	for k := range mp {
 		rs = append(rs, k)
 	}

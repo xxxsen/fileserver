@@ -10,21 +10,18 @@ import (
 	"go.uber.org/zap"
 )
 
-func init() {
+func CreateFullAuthMethods() []auth.IAuth {
+	authList := []auth.IAuth{}
 	lst := auth.AuthList()
 	for _, name := range lst {
-		ath, err := auth.CreateByName(name)
-		if err != nil {
-			panic(err)
-		}
+		ath := auth.MustCreateByName(name)
 		authList = append(authList, ath)
 	}
+	return authList
 }
 
-var authList = []auth.IAuth{}
-
 func CommonAuth(users map[string]string) gin.HandlerFunc {
-	return CommonAuthMiddleware(users, authList...)
+	return CommonAuthMiddleware(users, CreateFullAuthMethods()...)
 }
 
 func CommonAuthMiddleware(users map[string]string, ats ...auth.IAuth) gin.HandlerFunc {
@@ -43,6 +40,7 @@ func CommonAuthMiddleware(users map[string]string, ats ...auth.IAuth) gin.Handle
 				return
 			}
 			logger.Debug("user auth succ", zap.String("auth", fn.Name()), zap.String("ak", ak))
+			return
 		}
 		logger.Error("need auth")
 		ctx.AbortWithError(http.StatusUnauthorized, errs.New(errs.ErrParam, "need auth"))

@@ -9,11 +9,10 @@ import (
 	"fileserver/core/s3"
 	"fileserver/db"
 	"fileserver/handler"
+	_ "fileserver/handler/middlewares/auth"
 	"flag"
 	"fmt"
 	"strings"
-
-	_ "fileserver/handler/middlewares/auth"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/xxxsen/common/errs"
