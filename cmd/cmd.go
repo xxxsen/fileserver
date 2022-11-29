@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"strings"
 
+	_ "fileserver/handler/middlewares/auth"
+
 	"github.com/mitchellh/mapstructure"
 	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/idgen"

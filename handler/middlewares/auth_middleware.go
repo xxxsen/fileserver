@@ -1,139 +1,48 @@
 package middlewares
 
 import (
-	"encoding/base64"
-	"fileserver/utils"
-	"fmt"
+	"fileserver/handler/middlewares/auth"
 	"net/http"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/logutil"
-	"github.com/xxxsen/s3verify"
 	"go.uber.org/zap"
 )
 
-type IAuth interface {
-	Name() string
-	Auth(ctx *gin.Context, users map[string]string) (string, bool, error)
+func init() {
+	lst := auth.AuthList()
+	for _, name := range lst {
+		ath, err := auth.CreateByName(name)
+		if err != nil {
+			panic(err)
+		}
+		authList = append(authList, ath)
+	}
 }
 
-var authList = []IAuth{
-	&codeAuth{},
-	&basicAuth{},
-	&s3AuthV4{},
-}
-
-type codeAuth struct {
-}
-
-func (c *codeAuth) Name() string {
-	return "code_auth"
-}
-
-func (c *codeAuth) Auth(ctx *gin.Context, users map[string]string) (string, bool, error) {
-	ak := ctx.GetHeader("x-fs-ak")
-	sk, ok := users[ak]
-	if !ok {
-		return "", false, nil
-	}
-	ts := ctx.GetHeader("x-fs-ts")
-	code := ctx.GetHeader("x-fs-code")
-	if len(ts) == 0 || len(code) == 0 {
-		return "", false, nil
-	}
-	its, _ := strconv.ParseUint(ts, 10, 64)
-	now := time.Now().Unix()
-	if its < uint64(now) {
-		return "", false, errs.New(errs.ErrParam, "code expire, ts:%s", ts)
-	}
-	realCode := utils.GetMd5([]byte(fmt.Sprintf("%s:%s:%s", ak, sk, ts)))
-	if code == realCode {
-		return ak, true, nil
-	}
-	return "", false, nil
-}
-
-type basicAuth struct {
-}
-
-func (c *basicAuth) Name() string {
-	return "basic_auth"
-}
-
-func (b *basicAuth) Auth(ctx *gin.Context, users map[string]string) (string, bool, error) {
-	auth := ctx.GetHeader("Authorization")
-	if len(auth) == 0 {
-		return "", false, nil
-	}
-	authData := strings.SplitN(auth, " ", 2)
-	if len(authData) != 2 {
-		return "", false, errs.New(errs.ErrParam, "invalid auth data:%s", auth)
-	}
-	if authData[0] != "Basic" {
-		//not treat as error
-		return "", false, nil
-	}
-	bdata, err := base64.StdEncoding.DecodeString(authData[1])
-	if err != nil {
-		return "", false, errs.Wrap(errs.ErrParam, "decode auth data fail", err)
-	}
-	data := string(bdata)
-	userdata := strings.SplitN(data, ":", 2)
-	if len(userdata) != 2 {
-		return "", false, errs.New(errs.ErrParam, "invalid user pwd data:%s", data)
-	}
-	sk, ok := users[userdata[0]]
-	if !ok || sk != userdata[1] {
-		return "", false, nil
-	}
-	return userdata[0], true, nil
-}
-
-type s3AuthV4 struct {
-}
-
-func (c *s3AuthV4) Name() string {
-	return "s3_v4"
-}
-
-func (c *s3AuthV4) Auth(ctx *gin.Context, users map[string]string) (string, bool, error) {
-	if !s3verify.IsRequestSignatureV4(ctx.Request) {
-		return "", false, nil
-	}
-	ak, ok, err := s3verify.Verify(ctx.Request, users)
-	if err != nil {
-		return "", false, err
-	}
-	if !ok {
-		return "", false, nil
-	}
-	return ak, true, nil
-}
+var authList = []auth.IAuth{}
 
 func CommonAuth(users map[string]string) gin.HandlerFunc {
 	return CommonAuthMiddleware(users, authList...)
 }
 
-func CommonAuthMiddleware(users map[string]string, ats ...IAuth) gin.HandlerFunc {
+func CommonAuthMiddleware(users map[string]string, ats ...auth.IAuth) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		logger := logutil.GetLogger(ctx).With(zap.String("method", ctx.Request.Method),
 			zap.String("path", ctx.Request.URL.Path), zap.String("ip", ctx.ClientIP()))
 
 		for _, fn := range ats {
-			ak, ok, err := fn.Auth(ctx, users)
+			if !fn.IsMatchAuthType(ctx) {
+				continue
+			}
+			ak, err := fn.Auth(ctx, users)
 			if err != nil {
 				logger.Error("auth error", zap.String("auth", fn.Name()), zap.Error(err))
 				ctx.AbortWithError(http.StatusUnauthorized, errs.Wrap(errs.ErrUnknown, "internal services error", err))
 				return
 			}
-			if ok {
-				logger.Debug("user auth succ", zap.String("auth", fn.Name()), zap.String("ak", ak))
-				return
-			}
+			logger.Debug("user auth succ", zap.String("auth", fn.Name()), zap.String("ak", ak))
 		}
 		logger.Error("need auth")
 		ctx.AbortWithError(http.StatusUnauthorized, errs.New(errs.ErrParam, "need auth"))
