@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/logutil"
+	"github.com/xxxsen/s3verify"
 	"go.uber.org/zap"
 )
 
@@ -23,6 +24,7 @@ type IAuth interface {
 var authList = []IAuth{
 	&codeAuth{},
 	&basicAuth{},
+	&s3AuthV4{},
 }
 
 type codeAuth struct {
@@ -72,7 +74,8 @@ func (b *basicAuth) Auth(ctx *gin.Context, users map[string]string) (string, boo
 		return "", false, errs.New(errs.ErrParam, "invalid auth data:%s", auth)
 	}
 	if authData[0] != "Basic" {
-		return "", false, errs.New(errs.ErrParam, "invalid auth prefix, data:%s", auth)
+		//not treat as error
+		return "", false, nil
 	}
 	bdata, err := base64.StdEncoding.DecodeString(authData[1])
 	if err != nil {
@@ -90,26 +93,26 @@ func (b *basicAuth) Auth(ctx *gin.Context, users map[string]string) (string, boo
 	return userdata[0], true, nil
 }
 
-// func S3V4Auth(ctx *gin.Context, u, p string) (bool, error) {
-// 	if !s3base.IsRequestSignatureV4(ctx.Request) {
-// 		return false, nil
-// 	}
-// 	parsed, _, err := s3base.ParseV4Signature(ctx.Request)
-// 	if err != nil {
-// 		return false, errs.Wrap(errs.ErrParam, "parse v4 signature fail", err)
-// 	}
-// 	if u != parsed.AKey {
-// 		return false, nil
-// 	}
-// 	pass, err := s3base.S3AuthV4(ctx.Request, u, p, parsed)
-// 	if err != nil {
-// 		return false, err
-// 	}
-// 	if !pass {
-// 		return false, nil
-// 	}
-// 	return true, nil
-// }
+type s3AuthV4 struct {
+}
+
+func (c *s3AuthV4) Name() string {
+	return "s3_v4"
+}
+
+func (c *s3AuthV4) Auth(ctx *gin.Context, users map[string]string) (string, bool, error) {
+	if !s3verify.IsRequestSignatureV4(ctx.Request) {
+		return "", false, nil
+	}
+	ak, ok, err := s3verify.Verify(ctx.Request, users)
+	if err != nil {
+		return "", false, err
+	}
+	if !ok {
+		return "", false, nil
+	}
+	return ak, true, nil
+}
 
 func CommonAuth(users map[string]string) gin.HandlerFunc {
 	return CommonAuthMiddleware(users, authList...)
