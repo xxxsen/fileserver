@@ -7,11 +7,11 @@ import (
 	"fileserver/model"
 	"fmt"
 	"io"
-	"mime"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/qingstor/go-mime"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/cache"
@@ -43,7 +43,7 @@ func streamDownload(ctx *gin.Context, downKey uint64, fs core.IFsCore, fileinfo 
 		return errs.Wrap(errs.ErrS3, "create download stream fail", err)
 	}
 	defer rsp.Reader.Close()
-	contentType := mime.TypeByExtension(filepath.Ext(fileinfo.FileName))
+	contentType := mime.DetectFilePath(fileinfo.FileName)
 	writer := ctx.Writer
 	writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", strconv.Quote(fileinfo.FileName)))
 	writer.Header().Set("Content-Length", fmt.Sprintf("%d", fileinfo.FileSize))
