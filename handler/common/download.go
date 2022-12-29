@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	miniEnableRangeDownloadSize = 200 * 1024 * 1024
+	miniEnableRangeDownloadSize = 1 //enable range download by default
 )
 
 var fileCache, _ = cache.NewLocalCache(20000)
