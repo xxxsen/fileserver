@@ -364,7 +364,7 @@ func (c *TGBot) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadReq
 		return nil, errs.Wrap(errs.ErrIO, "upload part file fail", err)
 	}
 	if len(pctx.MD5) > 0 && pctx.MD5 != ck {
-		return nil, errs.New(errs.ErrParam, "checksum not match, get:%d, real:%d", pctx.MD5, ck)
+		return nil, errs.New(errs.ErrParam, "checksum not match, get:%s, real:%s", pctx.MD5, ck)
 	}
 	if err := c.storePartInfo(ctxFile, int(pctx.PartId), fileid, pctx.Size, ck); err != nil {
 		return nil, errs.Wrap(errs.ErrIO, "store partinfo to disk fail", err)
