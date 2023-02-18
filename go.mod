@@ -14,7 +14,7 @@ require (
 	github.com/qingstor/go-mime v0.1.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.8.1
-	github.com/xxxsen/common v0.0.16
+	github.com/xxxsen/common v0.0.20
 	github.com/xxxsen/s3verify v0.0.3
 	go.uber.org/zap v1.23.0
 	golang.org/x/sync v0.0.0-20220907140024-f12130a52804
