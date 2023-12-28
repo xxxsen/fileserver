@@ -167,8 +167,8 @@ github.com/ugorji/go v1.2.7/go.mod h1:nF9osbDWLy6bDVv/Rtoh6QgnvNDpmCalQV5urGCCS6
 github.com/ugorji/go/codec v1.2.7 h1:YPXUKf7fYbp/y8xloBqZOw2qaVggbfwMlI8WM3wZUJ0=
 github.com/ugorji/go/codec v1.2.7/go.mod h1:WGN1fab3R1fzQlVQTkfxVtIBhWDRqOviHU95kRgeqEY=
 github.com/xxxsen/common v0.0.16/go.mod h1:UzhfYI+vZr3nNAhg44ZB+6i80JesFEsUxlpcFmfR1GU=
-github.com/xxxsen/common v0.0.20 h1:pey6AwO4yWqgR83CzPAbyTPAzLH649cMqfeJCnJoMfA=
-github.com/xxxsen/common v0.0.20/go.mod h1:rK2sTZXBYIWRIzdpIKqDPRD92zzGQeeABslJtu7fptQ=
+github.com/xxxsen/common v0.0.25 h1:5ziKXJ9Q3g1AiLidY4CIWIB0C2tCN6z7cegCSIs7PIY=
+github.com/xxxsen/common v0.0.25/go.mod h1:rK2sTZXBYIWRIzdpIKqDPRD92zzGQeeABslJtu7fptQ=
 github.com/xxxsen/s3verify v0.0.3 h1:HLoBWgyaeMIPNuMZIcAD48oOoQbA28vCb4Ds9D1Q/yo=
 github.com/xxxsen/s3verify v0.0.3/go.mod h1:VmfrGSg85EgyoTn4gR1TRDoKrAcNgt2ba5S5wkB4m5Q=
 github.com/yitter/idgenerator-go v1.3.1 h1:GjVi2BupiDb1IXaXqrkOJE4p6qKdj3NaM3GdAjWok14=
