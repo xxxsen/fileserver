@@ -6,6 +6,7 @@ import (
 	"fileserver/handler/middlewares"
 	"fileserver/handler/s3"
 	"fileserver/proto/fileserver/fileinfo"
+	"fileserver/utils"
 	"fmt"
 
 	"github.com/xxxsen/common/cgi"
@@ -35,7 +36,6 @@ func OnRegist(router *gin.Engine, opts ...Option) {
 
 	refererMiddleware := middlewares.RefererMiddleware(c.enableRefererCheck, c.referers)
 
-	router.Use(middlewares.TimeCostMiddleware())
 	router.Use(refererMiddleware)
 	//upload
 	{
@@ -67,8 +67,8 @@ func registS3(router *gin.Engine, c *config, authMiddleware, downloadLimitMiddle
 	for _, bk := range c.fakeS3Buckets {
 		bucketPath := fmt.Sprintf("/%s", bk)
 		routerPath := fmt.Sprintf("%s/*s3Param", bucketPath)
-		router.GET(bucketPath, middlewares.S3BucketOpLimitMiddleware(), s3.GetBucket)
-		router.GET(routerPath, downloadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), s3.Download)
-		router.PUT(routerPath, authMiddleware, uploadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), s3.Upload)
+		router.GET(bucketPath, middlewares.S3BucketOpLimitMiddleware(), utils.WrapGinFunc(s3.GetBucket))
+		router.GET(routerPath, downloadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), utils.WrapGinFunc(s3.Download))
+		router.PUT(routerPath, authMiddleware, uploadLimitMiddleware, middlewares.S3BucketOpLimitMiddleware(), utils.WrapGinFunc(s3.Upload))
 	}
 }
