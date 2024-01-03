@@ -15,12 +15,12 @@ type BasicFileDownloadRequest struct {
 	DownKey string `form:"down_key" binding:"required"`
 }
 
-func FileDownload(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) {
+func FileDownload(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 	req := request.(*BasicFileDownloadRequest)
 	strDownKey := req.DownKey
 	downKey, err := utils.DecodeFileId(strDownKey)
 	if err != nil {
-		return http.StatusOK, errs.Wrap(errs.ErrParam, "invalid down key", err), nil
+		return http.StatusOK, nil, errs.Wrap(errs.ErrParam, "invalid down key", err)
 	}
 
 	if err := common.Download(ctx, &common.CommonDownloadContext{
@@ -28,7 +28,7 @@ func FileDownload(ctx *gin.Context, request interface{}) (int, errs.IError, inte
 		Fs:      getter.MustGetFsClient(ctx),
 		Dao:     dao.FileInfoDao,
 	}); err != nil {
-		return http.StatusOK, errs.Wrap(errs.ErrServiceInternal, "do download fail", err), nil
+		return http.StatusOK, nil, errs.Wrap(errs.ErrServiceInternal, "do download fail", err)
 	}
 	return http.StatusOK, nil, nil
 }

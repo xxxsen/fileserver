@@ -17,16 +17,16 @@ const (
 	maxListMetaSizePerRequest = 20
 )
 
-func Meta(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) {
+func Meta(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 	req := request.(*fileinfo.GetFileMetaRequest)
 	if len(req.DownKey) == 0 || len(req.DownKey) > maxListMetaSizePerRequest {
-		return http.StatusOK, errs.New(errs.ErrParam, "invalid down key size:%d", len(req.DownKey)), nil
+		return http.StatusOK, nil, errs.New(errs.ErrParam, "invalid down key size:%d", len(req.DownKey))
 	}
 	downkeys := make([]uint64, 0, len(req.GetDownKey()))
 	for _, item := range req.GetDownKey() {
 		downkey, err := utils.DecodeFileId(item)
 		if err != nil {
-			return http.StatusOK, errs.Wrap(errs.ErrParam, "decode down key fail", err), nil
+			return http.StatusOK, nil, errs.Wrap(errs.ErrParam, "decode down key fail", err)
 		}
 		downkeys = append(downkeys, downkey)
 	}
@@ -41,9 +41,9 @@ func Meta(ctx *gin.Context, request interface{}) (int, errs.IError, interface{})
 		return http.StatusOK, errs.Wrap(errs.ErrDatabase, "read file list fail", err), nil
 	}
 	metalist := fileinfo2pbmeta(req.GetDownKey(), downkeys, daoRsp.List)
-	return http.StatusOK, nil, &fileinfo.GetFileMetaResponse{
+	return http.StatusOK, &fileinfo.GetFileMetaResponse{
 		List: metalist,
-	}
+	}, nil
 }
 
 func fileinfo2pbmeta(origin []string, decoded []uint64, lst []*model.FileItem) []*fileinfo.FileItem {

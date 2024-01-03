@@ -17,11 +17,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func End(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) {
+func End(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 	req := request.(*fileinfo.FileUploadEndRequest)
 	if len(req.GetFileName()) == 0 ||
 		len(req.GetUploadCtx()) == 0 {
-		return http.StatusOK, errs.New(errs.ErrParam, "invalid filename/uploadctx"), nil
+		return http.StatusOK, nil, errs.New(errs.ErrParam, "invalid filename/uploadctx")
 	}
 
 	fs := getter.MustGetFsClient(ctx)
@@ -30,7 +30,7 @@ func End(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) 
 		FileName: req.GetFileName(),
 	})
 	if err != nil {
-		return http.StatusOK, errs.Wrap(errs.ErrS3, "complete upload fail", err), nil
+		return http.StatusOK, nil, errs.Wrap(errs.ErrS3, "complete upload fail", err)
 	}
 	fileid := idgen.NextId()
 	_, err = dao.FileInfoDao.CreateFile(ctx, &model.CreateFileRequest{
@@ -46,9 +46,9 @@ func End(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) 
 		},
 	})
 	if err != nil {
-		return http.StatusOK, errs.Wrap(errs.ErrDatabase, "write file record fail", err), nil
+		return http.StatusOK, nil, errs.Wrap(errs.ErrDatabase, "write file record fail", err)
 	}
-	return http.StatusOK, nil, &fileinfo.FileUploadEndResponse{
+	return http.StatusOK, &fileinfo.FileUploadEndResponse{
 		DownKey: proto.String(utils.EncodeFileId(fileid)),
-	}
+	}, nil
 }

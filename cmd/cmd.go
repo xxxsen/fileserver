@@ -15,11 +15,11 @@ import (
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
+	"github.com/xxxsen/common/cgi"
 	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/idgen"
 	"github.com/xxxsen/common/logger"
 	"github.com/xxxsen/common/logutil"
-	"github.com/xxxsen/common/naivesvr"
 	s3c "github.com/xxxsen/common/s3"
 	"go.uber.org/zap"
 )
@@ -47,9 +47,9 @@ func main() {
 	if err != nil {
 		logger.Fatal("init storage fail", zap.Error(err))
 	}
-	svr, err := naivesvr.NewServer(
-		naivesvr.WithAddress(c.ServerInfo.Address),
-		naivesvr.WithHandlerRegister(handler.OnRegistWithConfig(
+	svr, err := cgi.NewServer(
+		cgi.WithAddress(c.ServerInfo.Address),
+		cgi.WithHandlerRegister(handler.OnRegistWithConfig(
 			handler.WithUsers(c.AuthInfo),
 			handler.WithMaxDownloadThread(c.IOInfo.MaxDownloadThread),
 			handler.WithMaxUploadThread(c.IOInfo.MaxUploadThread),
@@ -58,7 +58,7 @@ func main() {
 			handler.WithEnableRefererCheck(c.RefererInfo.Enable),
 			handler.WithRefererList(c.RefererInfo.Referer),
 		)),
-		naivesvr.WithAttach(constants.KeyStorageClient, fs),
+		cgi.WithAttach(constants.KeyStorageClient, fs),
 	)
 	if err != nil {
 		logger.Fatal("init server fail", zap.Error(err))

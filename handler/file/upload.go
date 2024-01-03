@@ -23,7 +23,7 @@ type BasicFileUploadRequest struct {
 var ImageUpload = FileUpload
 var VideoUpload = FileUpload
 
-func FileUpload(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) {
+func FileUpload(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 	req := request.(*BasicFileUploadRequest)
 	header := req.File
 	file, err := header.Open()
@@ -46,7 +46,7 @@ func FileUpload(ctx *gin.Context, request interface{}) (int, errs.IError, interf
 	if err != nil {
 		return http.StatusOK, errs.Wrap(errs.ErrDatabase, "do file upload fail", err), nil
 	}
-	return http.StatusOK, nil, &fileinfo.FileUploadResponse{
+	return http.StatusOK, &fileinfo.FileUploadResponse{
 		DownKey: proto.String(utils.EncodeFileId(fileid)),
-	}
+	}, nil
 }

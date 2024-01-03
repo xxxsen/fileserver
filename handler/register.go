@@ -8,8 +8,8 @@ import (
 	"fileserver/proto/fileserver/fileinfo"
 	"fmt"
 
-	"github.com/xxxsen/common/naivesvr"
-	"github.com/xxxsen/common/naivesvr/codec"
+	"github.com/xxxsen/common/cgi"
+	"github.com/xxxsen/common/cgi/codec"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,22 +40,22 @@ func OnRegist(router *gin.Engine, opts ...Option) {
 	//upload
 	{
 		uploadRouter := router.Group("/upload", authMiddleware, uploadLimitMiddleware)
-		uploadRouter.POST("/image", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.ImageUpload))
-		uploadRouter.POST("/video", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.VideoUpload))
-		uploadRouter.POST("/file", naivesvr.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.FileUpload))
+		uploadRouter.POST("/image", cgi.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.ImageUpload))
+		uploadRouter.POST("/video", cgi.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.VideoUpload))
+		uploadRouter.POST("/file", cgi.WrapHandler(&file.BasicFileUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), file.FileUpload))
 		bigFileRouter := uploadRouter.Group("/bigfile")
-		bigFileRouter.POST("/begin", naivesvr.WrapHandler(&fileinfo.FileUploadBeginRequest{}, codec.JsonCodec, bigfile.Begin))
-		bigFileRouter.POST("/part", naivesvr.WrapHandler(&bigfile.PartUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), bigfile.Part))
-		bigFileRouter.POST("/end", naivesvr.WrapHandler(&fileinfo.FileUploadEndRequest{}, codec.JsonCodec, bigfile.End))
+		bigFileRouter.POST("/begin", cgi.WrapHandler(&fileinfo.FileUploadBeginRequest{}, codec.JsonCodec, bigfile.Begin))
+		bigFileRouter.POST("/part", cgi.WrapHandler(&bigfile.PartUploadRequest{}, codec.CustomCodec(codec.JsonCodec, codec.MultipartCodec), bigfile.Part))
+		bigFileRouter.POST("/end", cgi.WrapHandler(&fileinfo.FileUploadEndRequest{}, codec.JsonCodec, bigfile.End))
 
 	}
 	//download
 	{
-		router.GET("/file", downloadLimitMiddleware, naivesvr.WrapHandler(&file.BasicFileDownloadRequest{}, codec.CustomCodec(codec.NopCodec, codec.QueryCodec), file.FileDownload)) //input: down_key
+		router.GET("/file", downloadLimitMiddleware, cgi.WrapHandler(&file.BasicFileDownloadRequest{}, codec.CustomCodec(codec.NopCodec, codec.QueryCodec), file.FileDownload)) //input: down_key
 	}
 	//meta
 	{
-		router.POST("/file/meta", naivesvr.WrapHandler(&fileinfo.GetFileMetaRequest{}, codec.JsonCodec, file.Meta))
+		router.POST("/file/meta", cgi.WrapHandler(&fileinfo.GetFileMetaRequest{}, codec.JsonCodec, file.Meta))
 	}
 	registS3(router, c, authMiddleware, downloadLimitMiddleware, uploadLimitMiddleware)
 }

@@ -17,7 +17,7 @@ type PartUploadRequest struct {
 	UploadCtx string `form:"upload_ctx" binding:"required"`
 }
 
-func Part(ctx *gin.Context, request interface{}) (int, errs.IError, interface{}) {
+func Part(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 	req := request.(*PartUploadRequest)
 	var (
 		partid     = req.PartId
@@ -27,7 +27,7 @@ func Part(ctx *gin.Context, request interface{}) (int, errs.IError, interface{})
 
 	file, header, err := ctx.Request.FormFile("file")
 	if err != nil {
-		return http.StatusOK, errs.Wrap(errs.ErrParam, "get file fail", err), nil
+		return http.StatusOK, nil, errs.Wrap(errs.ErrParam, "get file fail", err)
 	}
 	defer file.Close()
 
@@ -40,7 +40,7 @@ func Part(ctx *gin.Context, request interface{}) (int, errs.IError, interface{})
 		MD5:        md5,
 	})
 	if err != nil {
-		return http.StatusOK, errs.Wrap(errs.ErrS3, "upload part fail", err), nil
+		return http.StatusOK, nil, errs.Wrap(errs.ErrS3, "upload part fail", err)
 	}
-	return http.StatusOK, nil, &fileinfo.FileUploadPartResponse{}
+	return http.StatusOK, &fileinfo.FileUploadPartResponse{}, nil
 }
