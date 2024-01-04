@@ -57,6 +57,7 @@ func main() {
 			handler.WithFakeS3BucketList(c.FakeS3Info.BucketList),
 			handler.WithEnableRefererCheck(c.RefererInfo.Enable),
 			handler.WithRefererList(c.RefererInfo.Referer),
+			handler.WithEnableWebUI(c.EnableWebUI),
 		)),
 		cgi.WithAttach(constants.KeyStorageClient, fs),
 	)

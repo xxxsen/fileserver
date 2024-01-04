@@ -7,10 +7,13 @@ import (
 	"fileserver/handler/s3"
 	"fileserver/proto/fileserver/fileinfo"
 	"fileserver/utils"
+	"fileserver/web"
 	"fmt"
 
 	"github.com/xxxsen/common/cgi"
 	"github.com/xxxsen/common/cgi/codec"
+
+	_ "embed"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,6 +40,12 @@ func OnRegist(router *gin.Engine, opts ...Option) {
 	refererMiddleware := middlewares.RefererMiddleware(c.enableRefererCheck, c.referers)
 
 	router.Use(refererMiddleware)
+	//index
+	if c.enableWebUI {
+		indexRouter := router.Group("/")
+		indexRouter.GET("/", web.Index)
+	}
+
 	//upload
 	{
 		uploadRouter := router.Group("/upload", authMiddleware, uploadLimitMiddleware)

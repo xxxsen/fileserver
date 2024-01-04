@@ -48,6 +48,7 @@ type Config struct {
 	IOInfo      IOConfig               `json:"io_info"`
 	FakeS3Info  FakeS3Config           `json:"fake_s3_info"`
 	RefererInfo RefererConfig          `json:"referer_info"`
+	EnableWebUI bool                   `json:"enable_webui"`
 }
 
 func Parse(f string) (*Config, error) {

@@ -8,6 +8,7 @@ type config struct {
 	fakeS3Buckets      []string
 	enableRefererCheck bool
 	referers           []string
+	enableWebUI        bool
 }
 
 type Option func(c *config)
@@ -59,5 +60,11 @@ func WithEnableRefererCheck(v bool) Option {
 func WithRefererList(v []string) Option {
 	return func(c *config) {
 		c.referers = v
+	}
+}
+
+func WithEnableWebUI(v bool) Option {
+	return func(c *config) {
+		c.enableWebUI = v
 	}
 }
