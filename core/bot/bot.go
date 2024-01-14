@@ -335,7 +335,8 @@ func (c *TGBot) storePartInfo(ctxFile string, partid int, partkey string, partsi
 }
 
 func (c *TGBot) buildContextFile(filekey string) string {
-	return fmt.Sprintf("%s%s%s", c.tmpDir(), string(filepath.Separator), filekey)
+	enc := utils.GetMd5([]byte(filekey)) //避免外部传入异常路径
+	return fmt.Sprintf("%s%s%s", c.tmpDir(), string(filepath.Separator), enc)
 }
 
 func (c *TGBot) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadRequest) (*core.PartFileUploadResponse, error) {
