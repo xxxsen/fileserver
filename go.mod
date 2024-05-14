@@ -1,9 +1,11 @@
 module fileserver
 
-go 1.18
+go 1.21
+
+toolchain go1.21.4
 
 require (
-	github.com/didi/gendry v1.7.0
+	github.com/didi/gendry v1.8.2
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-playground/assert/v2 v2.2.0
 	github.com/go-sql-driver/mysql v1.6.0
@@ -13,12 +15,12 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/qingstor/go-mime v0.1.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/stretchr/testify v1.8.3
-	github.com/xxxsen/common v0.1.0
+	github.com/stretchr/testify v1.8.4
+	github.com/xxxsen/common v0.1.5
 	github.com/xxxsen/s3verify v0.0.3
 	go.uber.org/zap v1.23.0
 	golang.org/x/sync v0.1.0
-	google.golang.org/protobuf v1.30.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
@@ -47,9 +49,9 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/crypto v0.21.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
