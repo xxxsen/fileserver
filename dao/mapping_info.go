@@ -70,7 +70,7 @@ func (d *mappingInfoDaoImpl) CreateMappingInfo(ctx context.Context, req *model.C
 	if err != nil {
 		return nil, fmt.Errorf("build insert sql fail, err:%w", err)
 	}
-	client := db.GetFileDB()
+	client := db.GetClient()
 	_, err = client.ExecContext(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("insert fail, err:%w", err)
@@ -89,7 +89,7 @@ func (d *mappingInfoDaoImpl) GetMappingInfo(ctx context.Context, req *model.GetM
 	if err != nil {
 		return nil, fmt.Errorf("build select fail, err:%w", err)
 	}
-	client := db.GetFileDB()
+	client := db.GetClient()
 	rows, err := client.QueryContext(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query fail, err:%w", err)

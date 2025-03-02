@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/didi/gendry/builder"
+	"github.com/xxxsen/common/database/dbkit"
 )
 
 var (
@@ -32,7 +33,7 @@ func (d *fileInfoDaoImpl) Table() string {
 }
 
 func (d *fileInfoDaoImpl) Client() *sql.DB {
-	return db.GetFileDB()
+	return db.GetClient()
 }
 
 func (d *fileInfoDaoImpl) Fields() []string {
@@ -49,27 +50,9 @@ func (d *fileInfoDaoImpl) ListFile(ctx context.Context, req *model.ListFileReque
 	if len(req.Query.ID) > 0 {
 		where["id in"] = req.Query.ID
 	}
-	sql, args, err := builder.BuildSelect(d.Table(), where, d.Fields())
-	if err != nil {
-		return nil, fmt.Errorf("build select, err:%w", err)
-	}
-	rows, err := d.Client().QueryContext(ctx, sql, args...)
-	if err != nil {
-		return nil, fmt.Errorf("select fail, err:%w", err)
-	}
-	defer rows.Close()
 	rs := make([]*model.FileItem, 0, req.Limit)
-	for rows.Next() {
-		item := &model.FileItem{}
-		if err := rows.Scan(&item.Id, &item.FileName,
-			&item.Hash, &item.FileSize, &item.CreateTime,
-			&item.DownKey, &item.Extra, &item.FileKey, &item.StType); err != nil {
-			return nil, fmt.Errorf("scan fail, err:%w", err)
-		}
-		rs = append(rs, item)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("scan fail, err:%w", err)
+	if err := dbkit.SimpleQuery(ctx, d.Client(), d.Table(), where, &rs, dbkit.ScanWithTagName("json")); err != nil {
+		return nil, err
 	}
 	return &model.ListFileResponse{List: rs}, nil
 }
@@ -105,7 +88,7 @@ func (d *fileInfoDaoImpl) CreateFile(ctx context.Context, req *model.CreateFileR
 			"st_type":     req.Item.StType,
 		},
 	}
-	sql, args, err := builder.BuildInsertIgnore(d.Table(), data)
+	sql, args, err := builder.BuildInsert(d.Table(), data)
 	if err != nil {
 		return nil, fmt.Errorf("build insert, err:%w", err)
 	}

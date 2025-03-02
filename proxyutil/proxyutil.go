@@ -11,9 +11,9 @@ const (
 )
 
 type CommonResponse struct {
-	Code    uint32
-	Message string
-	Data    interface{}
+	Code    uint32      `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
 }
 
 type iCodeErr interface {

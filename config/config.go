@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/xxxsen/common/database"
 	"github.com/xxxsen/common/logger"
 )
 
@@ -39,7 +38,7 @@ type RefererConfig struct {
 
 type Config struct {
 	LogInfo     logger.LogConfig       `json:"log_info"`
-	FileDBInfo  database.DBConfig      `json:"file_db_info"`
+	DBFile      string                 `json:"db_file"`
 	ServerInfo  ServerConfig           `json:"server_info"`
 	IDGenInfo   IDGenConfig            `json:"idgen_info"`
 	FsInfo      map[string]interface{} `json:"fs_info"`

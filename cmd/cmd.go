@@ -34,7 +34,7 @@ func main() {
 	logger := logger.Init(logitem.File, logitem.Level, int(logitem.FileCount), int(logitem.FileSize), int(logitem.KeepDays), logitem.Console)
 
 	logger.Info("recv config", zap.Any("config", c))
-	if err := db.InitFileDB(&c.FileDBInfo); err != nil {
+	if err := db.InitDB(c.DBFile); err != nil {
 		logger.Fatal("init media db fail", zap.Error(err))
 	}
 	if err := idgen.Init(c.IDGenInfo.WorkerID); err != nil {

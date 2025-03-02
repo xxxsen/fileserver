@@ -28,14 +28,8 @@ func innerHandle(fn HandleFunc, ptr interface{}, onDecode func(c *gin.Context, i
 
 }
 
-func HanleJson(fn HandleFunc, ptr interface{}) gin.HandlerFunc {
+func WrapBizFunc(fn HandleFunc, ptr interface{}) gin.HandlerFunc {
 	return innerHandle(fn, ptr, func(c *gin.Context, input interface{}) error {
-		return c.ShouldBindJSON(input)
-	})
-}
-
-func HandleForm(fn HandleFunc, ptr interface{}) gin.HandlerFunc {
-	return innerHandle(fn, ptr, func(c *gin.Context, input interface{}) error {
-		return c.ShouldBind(ptr)
+		return c.ShouldBind(input)
 	})
 }

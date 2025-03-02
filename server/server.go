@@ -11,6 +11,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func init() {
+	gin.SetMode(gin.ReleaseMode)
+}
+
 type Server struct {
 	addr   string
 	c      *config
@@ -19,10 +23,14 @@ type Server struct {
 
 func New(bind string, opts ...Option) (*Server, error) {
 	c := applyOpts(opts...)
-	return &Server{addr: bind, c: c}, nil
+	svr := &Server{addr: bind, c: c}
+	if err := svr.init(); err != nil {
+		return nil, err
+	}
+	return svr, nil
 }
 
-func (s *Server) Init() error {
+func (s *Server) init() error {
 	s.engine = gin.New()
 	s.initBasic(s.engine)
 	s.initS3(s.engine)
@@ -31,9 +39,9 @@ func (s *Server) Init() error {
 
 func (s *Server) initBasic(router *gin.Engine) {
 	authMiddleware := middleware.CommonAuth(s.c.userMap)
-	router.POST("/upload/file", authMiddleware, proxyutil.HandleForm(file.FileUpload, &file.BasicFileUploadRequest{}))
-	router.GET("/file", proxyutil.HandleForm(file.FileDownload, &file.BasicFileDownloadRequest{}))
-	router.GET("/file/meta", proxyutil.HandleForm(file.GetMetaInfo, &fileinfo.GetFileMetaRequest{}))
+	router.POST("/upload/file", authMiddleware, proxyutil.WrapBizFunc(file.FileUpload, &file.BasicFileUploadRequest{}))
+	router.GET("/file", proxyutil.WrapBizFunc(file.FileDownload, &file.BasicFileDownloadRequest{}))
+	router.POST("/file/meta", proxyutil.WrapBizFunc(file.GetMetaInfo, &fileinfo.GetFileMetaRequest{}))
 	for _, bk := range s.c.s3Buckets {
 		bucketPath := fmt.Sprintf("/%s", bk)
 		routerPath := fmt.Sprintf("%s/*s3Param", bucketPath)
