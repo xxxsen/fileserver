@@ -3,14 +3,12 @@ package s3
 import (
 	"fileserver/dao"
 	"fileserver/handler/common"
-	"fileserver/handler/getter"
 	"fileserver/handler/s3base"
 	"fileserver/model"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/logutil"
 	"go.uber.org/zap"
 )
@@ -27,14 +25,11 @@ func Download(ctx *gin.Context) {
 		return
 	}
 	if mappingResponse.Item == nil {
-		s3base.WriteError(ctx, http.StatusNotFound, errs.New(errs.ErrNotFound, "data not found"))
+		s3base.WriteError(ctx, http.StatusNotFound, fmt.Errorf("data not found"))
 		return
 	}
-	fs := getter.MustGetFsClient(ctx)
 	if err := common.Download(ctx, &common.CommonDownloadContext{
 		DownKey: mappingResponse.Item.FileId,
-		Fs:      fs,
-		Dao:     dao.FileInfoDao,
 	}); err != nil {
 		s3base.WriteError(ctx, http.StatusInternalServerError, fmt.Errorf("do download fail, err:%w", err))
 		return
@@ -42,6 +37,6 @@ func Download(ctx *gin.Context) {
 	logutil.GetLogger(ctx).Info("download file finish", zap.String("bucket", bucket), zap.String("obj", obj))
 }
 
-func GetBucket(ctx *gin.Context) {
-	s3base.SimpleReply(ctx)
+func GetBucket(c *gin.Context) {
+	s3base.SimpleReply(c)
 }

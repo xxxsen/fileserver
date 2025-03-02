@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/xxxsen/common/errs"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -19,7 +18,7 @@ type MultiBot struct {
 
 func NewMultiBot(bots ...*TGBot) (*MultiBot, error) {
 	if len(bots) == 0 {
-		return nil, errs.New(errs.ErrParam, "no bot found")
+		return nil, fmt.Errorf("no bot found")
 	}
 	m := &MultiBot{
 		botList: bots,
@@ -27,7 +26,7 @@ func NewMultiBot(bots ...*TGBot) (*MultiBot, error) {
 	}
 	for _, bt := range bots {
 		if _, ok := m.bots[bt.GetBotHash()]; ok {
-			return nil, errs.New(errs.ErrParam, "bot conflict, same bot hash:%d, chatid:%d, token:%s",
+			return nil, fmt.Errorf("bot conflict, same bot hash:%d, chatid:%d, token:%s",
 				bt.GetBotHash(), bt.GetChatId(), bt.GetToken())
 		}
 		m.bots[bt.GetBotHash()] = bt

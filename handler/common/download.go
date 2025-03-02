@@ -15,7 +15,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/cache"
-	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/logutil"
 	"go.uber.org/zap"
 )
@@ -28,8 +27,6 @@ var fileCache, _ = cache.NewLocalCache(20000)
 
 type CommonDownloadContext struct {
 	DownKey uint64
-	Fs      core.IFsCore
-	Dao     dao.FileInfoService
 }
 
 func streamDownload(ctx *gin.Context, downKey uint64, fs core.IFsCore, fileinfo *model.FileItem) error {
@@ -82,10 +79,8 @@ func cacheGetFileMeta(ctx context.Context, c cache.ICache, key interface{},
 
 func Download(ctx *gin.Context, fctx *CommonDownloadContext) error {
 	downKey := fctx.DownKey
-	fs := fctx.Fs
-
 	ifileinfo, exist, err := cacheGetFileMeta(ctx, fileCache, downKey, func() (interface{}, bool, error) {
-		daoRsp, exist, err := fctx.Dao.GetFile(ctx, &model.GetFileRequest{
+		daoRsp, exist, err := dao.FileInfoDao.GetFile(ctx, &model.GetFileRequest{
 			DownKey: downKey,
 		})
 		if err != nil {
@@ -100,15 +95,15 @@ func Download(ctx *gin.Context, fctx *CommonDownloadContext) error {
 		return fmt.Errorf("cache get file meta fail, err:%w", err)
 	}
 	if !exist {
-		return errs.New(errs.ErrNotFound, "not found file meta")
+		return fmt.Errorf("not found file meta")
 	}
 	fileinfo := ifileinfo.(*model.FileItem)
 
 	if r := ctx.GetHeader("range"); len(r) == 0 || fileinfo.FileSize < miniEnableRangeDownloadSize { //filesize < 200MB will not enable range download
-		return streamDownload(ctx, downKey, fs, fileinfo)
+		return streamDownload(ctx, downKey, core.GetFsCore(), fileinfo)
 	}
 
-	file := core.NewSeeker(ctx, fs, int64(fileinfo.FileSize), fileinfo.FileKey, fileinfo.Extra, fileinfo.StType)
+	file := core.NewSeeker(ctx, core.GetFsCore(), int64(fileinfo.FileSize), fileinfo.FileKey, fileinfo.Extra, fileinfo.StType)
 	defer file.Close()
 	http.ServeContent(ctx.Writer, ctx.Request, strconv.Quote(fileinfo.FileName), time.Unix(int64(fileinfo.CreateTime), 0), file)
 	return nil

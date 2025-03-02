@@ -1,9 +1,11 @@
 package file
 
 import (
+	"context"
 	"fileserver/dao"
 	"fileserver/model"
 	"fileserver/proto/fileserver/fileinfo"
+	"fileserver/proxyutil"
 	"fileserver/utils"
 	"fmt"
 	"net/http"
@@ -16,16 +18,18 @@ const (
 	maxListMetaSizePerRequest = 20
 )
 
-func Meta(ctx *gin.Context, request interface{}) (int, interface{}, error) {
+func GetMetaInfo(c *gin.Context, ctx context.Context, request interface{}) {
 	req := request.(*fileinfo.GetFileMetaRequest)
 	if len(req.DownKey) == 0 || len(req.DownKey) > maxListMetaSizePerRequest {
-		return http.StatusOK, nil, fmt.Errorf("invalid down key size:%d", len(req.DownKey))
+		proxyutil.Fail(c, http.StatusBadRequest, fmt.Errorf("invalid down key size:%d", len(req.DownKey)))
+		return
 	}
 	downkeys := make([]uint64, 0, len(req.GetDownKey()))
 	for _, item := range req.GetDownKey() {
 		downkey, err := utils.DecodeFileId(item)
 		if err != nil {
-			return http.StatusOK, nil, fmt.Errorf("decode down key fail, err:%w", err)
+			proxyutil.Fail(c, http.StatusBadRequest, fmt.Errorf("decode down key fail, err:%w", err))
+			return
 		}
 		downkeys = append(downkeys, downkey)
 	}
@@ -37,12 +41,13 @@ func Meta(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 		Limit:  uint32(len(req.DownKey)),
 	})
 	if err != nil {
-		return http.StatusOK, fmt.Errorf("read file list fail, err:%w", err), nil
+		proxyutil.Fail(c, http.StatusInternalServerError, fmt.Errorf("read file list fail, err:%w", err))
+		return
 	}
 	metalist := fileinfo2pbmeta(req.GetDownKey(), downkeys, daoRsp.List)
-	return http.StatusOK, &fileinfo.GetFileMetaResponse{
+	proxyutil.Success(c, &fileinfo.GetFileMetaResponse{
 		List: metalist,
-	}, nil
+	})
 }
 
 func fileinfo2pbmeta(origin []string, decoded []uint64, lst []*model.FileItem) []*fileinfo.FileItem {

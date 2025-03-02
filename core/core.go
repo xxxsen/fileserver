@@ -5,6 +5,10 @@ import (
 	"io"
 )
 
+var (
+	impl IFsCore
+)
+
 type FileUploadRequest struct {
 	ReadSeeker io.ReadSeeker
 	Size       int64
@@ -68,4 +72,12 @@ type IFsCore interface {
 	BeginFileUpload(ctx context.Context, fctx *BeginFileUploadRequest) (*BeginFileUploadResponse, error)
 	PartFileUpload(ctx context.Context, pctx *PartFileUploadRequest) (*PartFileUploadResponse, error)
 	FinishFileUpload(ctx context.Context, fctx *FinishFileUploadRequest) (*FinishFileUploadResponse, error)
+}
+
+func SetFsCore(c IFsCore) {
+	impl = c
+}
+
+func GetFsCore() IFsCore {
+	return impl
 }

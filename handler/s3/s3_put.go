@@ -2,19 +2,15 @@ package s3
 
 import (
 	"bytes"
-	"fileserver/core"
 	"fileserver/dao"
 	"fileserver/handler/common"
-	"fileserver/handler/getter"
 	"fileserver/handler/s3base"
 	"fileserver/model"
 	"fileserver/utils"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"path"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/idgen"
@@ -22,83 +18,11 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	maxS3UploadFileLimit = 10 * 1024 * 1024 //
-)
-
-func bigFileUpload(ctx *gin.Context) (uint64, string, error) {
-	length := ctx.Request.ContentLength
-	fs := getter.MustGetFsClient(ctx)
-	//生成uploadid
-	beginRsp, err := fs.BeginFileUpload(ctx, &core.BeginFileUploadRequest{
-		FileSize: length,
-	})
-	if err != nil {
-		return 0, "", fmt.Errorf("begin upload fail, err:%w", err)
-	}
-	file := ctx.Request.Body
-	uploadid := beginRsp.UploadID
-
-	//分批上传
-	blkcnt := utils.CalcFileBlockCount(uint64(length), uint64(fs.BlockSize()))
-	for i := 0; i < blkcnt; i++ {
-		partid := i + 1
-		r := io.LimitReader(file, fs.BlockSize())
-		raw, err := ioutil.ReadAll(r)
-		if err != nil {
-			return 0, "", fmt.Errorf("read io data fail, err:%w", err)
-		}
-		md5v := utils.GetMd5(raw)
-
-		_, err = fs.PartFileUpload(ctx, &core.PartFileUploadRequest{
-			ReadSeeker: bytes.NewReader(raw),
-			UploadId:   uploadid,
-			PartId:     uint64(partid),
-			Size:       int64(len(raw)),
-			MD5:        md5v,
-		})
-		if err != nil {
-			return 0, "", fmt.Errorf("part upload fail, err:%w", err)
-		}
-	}
-	obj, _ := s3base.GetS3Object(ctx)
-	name := path.Base(obj)
-	//完成上传
-	rsp, err := fs.FinishFileUpload(ctx, &core.FinishFileUploadRequest{
-		UploadId: uploadid,
-		FileName: name,
-	})
-	if err != nil {
-		return 0, "", fmt.Errorf("finish file upload fail, err:%w", err)
-	}
-	//写入db
-	fileid := idgen.NextId()
-	_, err = dao.FileInfoDao.CreateFile(ctx, &model.CreateFileRequest{
-		Item: &model.FileItem{
-			FileName:   name,
-			Hash:       rsp.CheckSum,
-			FileSize:   uint64(rsp.FileSize),
-			CreateTime: uint64(time.Now().UnixMilli()),
-			FileKey:    rsp.Key,
-			Extra:      rsp.Extra,
-			DownKey:    fileid,
-			StType:     fs.StType(),
-		},
-	})
-	if err != nil {
-		return 0, "", fmt.Errorf("write file to db fail, err:%w", err)
-	}
-	return fileid, rsp.CheckSum, nil
-}
-
 func smallFileUpload(ctx *gin.Context) (uint64, string, error) {
 	md5Base64 := ctx.Request.Header.Get("Content-MD5")
 	length := ctx.Request.ContentLength
 
-	if length > maxS3UploadFileLimit {
-		return 0, "", fmt.Errorf("size out of limit, s3 file size should less than:%d", maxS3UploadFileLimit)
-	}
-	raw, err := ioutil.ReadAll(ctx.Request.Body)
+	raw, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		return 0, "", fmt.Errorf("read body fail, err:%w", err)
 	}
@@ -110,13 +34,10 @@ func smallFileUpload(ctx *gin.Context) (uint64, string, error) {
 		checksum = utils.GetMd5(raw)
 	}
 
-	fs := getter.MustGetFsClient(ctx)
 	obj, _ := s3base.GetS3Object(ctx)
 	name := path.Base(obj)
 	uploadRequest := common.CommonUploadContext{
 		IDG:    idgen.Default(),
-		Fs:     fs,
-		Dao:    dao.FileInfoDao,
 		Reader: bytes.NewReader(raw),
 		Size:   length,
 		Name:   name,
@@ -132,9 +53,6 @@ func smallFileUpload(ctx *gin.Context) (uint64, string, error) {
 func Upload(ctx *gin.Context) {
 	caller := smallFileUpload
 	length := ctx.Request.ContentLength
-	if length > getter.MustGetFsClient(ctx).BlockSize() {
-		caller = bigFileUpload
-	}
 	fileid, checksum, err := caller(ctx)
 	if err != nil {
 		s3base.WriteError(ctx, http.StatusInternalServerError, fmt.Errorf("do file upload fail, err:%w", err))

@@ -1,10 +1,10 @@
 package file
 
 import (
-	"fileserver/dao"
+	"context"
 	"fileserver/handler/common"
-	"fileserver/handler/getter"
 	"fileserver/proto/fileserver/fileinfo"
+	"fileserver/proxyutil"
 	"fileserver/utils"
 	"fmt"
 	"mime/multipart"
@@ -23,30 +23,30 @@ type BasicFileUploadRequest struct {
 var ImageUpload = FileUpload
 var VideoUpload = FileUpload
 
-func FileUpload(ctx *gin.Context, request interface{}) (int, interface{}, error) {
+func FileUpload(c *gin.Context, ctx context.Context, request interface{}) {
 	req := request.(*BasicFileUploadRequest)
 	header := req.File
 	file, err := header.Open()
 	if err != nil {
-		return http.StatusOK, fmt.Errorf("open file fail, err:%w", err), nil
+		proxyutil.Fail(c, http.StatusBadRequest, fmt.Errorf("open file fail, err:%w", err))
+		return
 	}
 	defer file.Close()
-	fs := getter.MustGetFsClient(ctx)
 	md5 := req.MD5
 
 	fileid, err := common.Upload(ctx, &common.CommonUploadContext{
 		IDG:    idgen.Default(),
-		Fs:     fs,
-		Dao:    dao.FileInfoDao,
 		Name:   header.Filename,
 		Size:   header.Size,
 		Reader: file,
 		Md5Sum: md5,
 	})
 	if err != nil {
-		return http.StatusOK, fmt.Errorf("do file upload fail, err:%w", err), nil
+		proxyutil.Fail(c, http.StatusInternalServerError, fmt.Errorf("do file upload fail, err:%w", err))
+		return
+
 	}
-	return http.StatusOK, &fileinfo.FileUploadResponse{
+	proxyutil.Success(c, &fileinfo.FileUploadResponse{
 		DownKey: proto.String(utils.EncodeFileId(fileid)),
-	}, nil
+	})
 }

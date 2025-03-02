@@ -21,7 +21,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
 	lru "github.com/hnlq715/golang-lru"
-	"github.com/xxxsen/common/errs"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -53,7 +52,7 @@ func New(opts ...Option) (*TGBot, error) {
 		opt(c)
 	}
 	if c.chatid == 0 || len(c.token) == 0 {
-		return nil, errs.New(errs.ErrParam, "invalid chatid/token")
+		return nil, fmt.Errorf("invalid chatid/token")
 	}
 	botClient, err := newBotClient(c.chatid, c.token)
 	if err != nil {
@@ -155,7 +154,7 @@ func (c *TGBot) multipartFileUpload(ctx context.Context, uctx *core.FileUploadRe
 		}
 		fid, _, err := c.uploadOne(ctx, partreader, int64(blkidsz))
 		if err != nil {
-			return "", "", errs.Wrap(errs.ErrIO, fmt.Sprintf("upload block fail, id:%d", i), err)
+			return "", "", fmt.Errorf("upload block fail, id:%d, err:%w", i, err)
 		}
 		blklist = append(blklist, fid)
 	}
@@ -218,10 +217,8 @@ func (c *TGBot) getMultiblockMeta(ctx context.Context, fid string) (*fileinfo.Bo
 	}
 	finfo, err := utils.DecodeBotUploadContext(raw)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrUnknown,
-			fmt.Sprintf("decode upload context fail, ctxdata:%s, ctxdata len:%d", hex.EncodeToString(raw), len(raw)),
-			err,
-		)
+		return nil, fmt.Errorf("decode upload context fail, ctxdata:%s, ctxdata len:%d, err:%w",
+			hex.EncodeToString(raw), len(raw), err)
 	}
 	c.metaCache.Add(fid, finfo)
 	return finfo, nil
@@ -349,7 +346,7 @@ func (c *TGBot) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadReq
 		return nil, fmt.Errorf("invalid part size, partid:%d, blksize:%d", pctx.PartId, uctx.GetBlockSize())
 	}
 	if pctx.Size == 0 {
-		return nil, errs.New(errs.ErrParam, "empty size")
+		return nil, fmt.Errorf("empty size")
 	}
 	ctxFile := c.buildContextFile(uctx.GetFileKey())
 	if pctx.PartId != 1 {
@@ -416,7 +413,7 @@ func (c *TGBot) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUploa
 		return nil, fmt.Errorf("read store part info fail, err:%w", err)
 	}
 	if len(parts) == 0 {
-		return nil, errs.New(errs.ErrParam, "no file part found")
+		return nil, fmt.Errorf("no file part found")
 	}
 	var calcSize int64
 	blks := make([]string, 0, len(parts))

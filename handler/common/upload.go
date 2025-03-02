@@ -15,8 +15,6 @@ import (
 
 type CommonUploadContext struct {
 	IDG idgen.IDGenerator
-	Fs  core.IFsCore
-	Dao dao.FileInfoService
 
 	Name   string
 	Size   int64
@@ -27,10 +25,10 @@ type CommonUploadContext struct {
 func Upload(ctx context.Context, fctx *CommonUploadContext) (uint64, error) {
 	var (
 		file = fctx.Reader
-		fs   = fctx.Fs
 		md5  = fctx.Md5Sum
 		size = fctx.Size
 		name = fctx.Name
+		fs   = core.GetFsCore()
 	)
 	if size > fs.MaxFileSize() {
 		return 0, fmt.Errorf("file size out of limit, should less than:%d", fs.MaxFileSize())
@@ -48,7 +46,7 @@ func Upload(ctx context.Context, fctx *CommonUploadContext) (uint64, error) {
 		return 0, fmt.Errorf("upload file fail, err:%w", err)
 	}
 	fileid := fctx.IDG.NextId()
-	if _, err := fctx.Dao.CreateFile(ctx, &model.CreateFileRequest{
+	if _, err := dao.FileInfoDao.CreateFile(ctx, &model.CreateFileRequest{
 		Item: &model.FileItem{
 			FileName:   name,
 			Hash:       rsp.CheckSum,

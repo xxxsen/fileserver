@@ -2,21 +2,18 @@ package main
 
 import (
 	"context"
+	_ "fileserver/auth"
 	"fileserver/config"
-	"fileserver/constants"
 	"fileserver/core"
 	"fileserver/core/bot"
 	"fileserver/core/s3"
 	"fileserver/db"
-	"fileserver/handler"
-	_ "fileserver/handler/middlewares/auth"
+	"fileserver/server"
 	"flag"
 	"fmt"
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/xxxsen/common/cgi"
-	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/idgen"
 	"github.com/xxxsen/common/logger"
 	"github.com/xxxsen/common/logutil"
@@ -47,19 +44,11 @@ func main() {
 	if err != nil {
 		logger.Fatal("init storage fail", zap.Error(err))
 	}
-	svr, err := cgi.NewServer(
-		cgi.WithAddress(c.ServerInfo.Address),
-		cgi.WithHandlerRegister(handler.OnRegistWithConfig(
-			handler.WithUsers(c.AuthInfo),
-			handler.WithMaxDownloadThread(c.IOInfo.MaxDownloadThread),
-			handler.WithMaxUploadThread(c.IOInfo.MaxUploadThread),
-			handler.WithEnableFakeS3(c.FakeS3Info.Enable),
-			handler.WithFakeS3BucketList(c.FakeS3Info.BucketList),
-			handler.WithEnableRefererCheck(c.RefererInfo.Enable),
-			handler.WithRefererList(c.RefererInfo.Referer),
-			handler.WithEnableWebUI(c.EnableWebUI),
-		)),
-		cgi.WithAttach(constants.KeyStorageClient, fs),
+	core.SetFsCore(fs)
+
+	svr, err := server.New(c.ServerInfo.Address,
+		server.WithS3Buckets(c.FakeS3Info.BucketList),
+		server.WithUser(c.AuthInfo),
 	)
 	if err != nil {
 		logger.Fatal("init server fail", zap.Error(err))
@@ -85,7 +74,7 @@ func initStorage(c *config.Config) (core.IFsCore, error) {
 			c, err = initMultiTGBotCore(param)
 		}
 		if err != nil {
-			return nil, errs.Wrap(errs.ErrStorage, fmt.Sprintf("init core:%s fail", name), err)
+			return nil, fmt.Errorf("init core:%s fail, err:%w", name, err)
 		}
 		names = append(names, name)
 		downloaders = append(downloaders, c)
@@ -146,8 +135,7 @@ func initMultiTGBotCore(param interface{}) (core.IFsCore, error) {
 	for _, botInfo := range botsInfo {
 		botcore, err := bot.New(bot.WithAuth(int64(botInfo.Chatid), botInfo.Token))
 		if err != nil {
-			return nil, errs.Wrap(errs.ErrStorage,
-				fmt.Sprintf("init tg bot fail, chatid:%d, token:%s", botInfo.Chatid, botInfo.Token), err)
+			return nil, fmt.Errorf("init tg bot fail, chatid:%d, token:%s, err:%w", botInfo.Chatid, botInfo.Token, err)
 		}
 		logutil.GetLogger(context.Background()).Info("init bot succ", zap.Int64("chatid", botcore.GetChatId()),
 			zap.String("token", botcore.GetToken()),

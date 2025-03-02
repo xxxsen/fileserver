@@ -1,4 +1,4 @@
-package middlewares
+package middleware
 
 import (
 	"fileserver/handler/s3base"
@@ -9,7 +9,7 @@ import (
 	"github.com/xxxsen/common/errs"
 )
 
-func S3BucketOpLimitMiddleware() gin.HandlerFunc {
+func S3InfoExtractMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		switch ctx.Request.Method {
 		case http.MethodGet, http.MethodPut:

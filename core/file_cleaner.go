@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/robfig/cron/v3"
-	"github.com/xxxsen/common/errs"
 )
 
 const (
@@ -69,7 +68,7 @@ func (f *FileCleaner) doWork(tk *CleanEntry) error {
 	for _, item := range enties {
 		info, err := item.Info()
 		if err != nil {
-			return errs.Wrap(errs.ErrUnknown, fmt.Sprintf("read file info fail, file:%s", info.Name()), err)
+			return fmt.Errorf("read file info fail, file:%s, err:%w", info.Name(), err)
 		}
 		if !info.ModTime().Add(tk.Keep).Before(now) {
 			continue

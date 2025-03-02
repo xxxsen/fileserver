@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fileserver/utils"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +23,7 @@ func TestS3UploadDownload(t *testing.T) {
 
 	r, err := client.Download(ctx, fileid)
 	assert.NoError(t, err)
-	raw, err := ioutil.ReadAll(r)
+	raw, err := io.ReadAll(r)
 	assert.NoError(t, err)
 	t.Logf("download succ, data:%s", string(raw))
 	assert.Equal(t, content, string(raw))

@@ -12,7 +12,6 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	lru "github.com/hnlq715/golang-lru"
-	"github.com/xxxsen/common/errs"
 )
 
 var linkCache, _ = lru.New(20000)
@@ -87,7 +86,7 @@ func (r *PartReader) initReader() error {
 	}
 	if r.startat != 0 && len(rsp.Header.Get("Content-Range")) == 0 {
 		rsp.Body.Close()
-		return errs.New(errs.ErrParam, "not support range")
+		return fmt.Errorf("not support range")
 	}
 	r.r = rsp.Body
 	r.isOpen = true
@@ -172,12 +171,12 @@ func (r *MultipartReader) Read(buf []byte) (int, error) {
 		return 0, fmt.Errorf("init reader fail, err:%w", err)
 	}
 	if !r.isOpen {
-		return 0, errs.New(errs.ErrIO, "reader already closed")
+		return 0, fmt.Errorf("reader already closed")
 	}
 	cnt, err := r.reader.Read(buf)
 	if err == io.EOF {
 		if cerr := r.reader.Close(); cerr != nil {
-			return cnt, errs.Wrap(errs.ErrIO, fmt.Sprintf("close internal part fail, index:%d", r.partindex), err)
+			return cnt, fmt.Errorf("close internal part fail, index:%d, err:%w", r.partindex, err)
 		}
 		if r.partindex+1 < len(r.meta.BlkList) {
 			r.partindex++

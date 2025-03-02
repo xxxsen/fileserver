@@ -1,7 +1,7 @@
-package middlewares
+package middleware
 
 import (
-	"fileserver/handler/middlewares/auth"
+	"fileserver/auth"
 	"fmt"
 	"net/http"
 
