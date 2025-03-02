@@ -38,10 +38,10 @@ func (b *basicAuth) Auth(ctx *gin.Context, users map[string]string) (string, err
 	}
 	authData := strings.SplitN(auth, " ", 2)
 	if len(authData) != 2 {
-		return "", errs.New(errs.ErrParam, "invalid auth data:%s", auth)
+		return "", fmt.Errorf("invalid auth data:%s", auth)
 	}
 	if authData[0] != "Basic" {
-		return "", errs.New(errs.ErrParam, "authorization value should startswith Basic, v:%s", authData[0])
+		return "", fmt.Errorf("authorization value should startswith Basic, v:%s", authData[0])
 	}
 	bdata, err := base64.StdEncoding.DecodeString(authData[1])
 	if err != nil {
@@ -50,14 +50,14 @@ func (b *basicAuth) Auth(ctx *gin.Context, users map[string]string) (string, err
 	data := string(bdata)
 	userdata := strings.SplitN(data, ":", 2)
 	if len(userdata) != 2 {
-		return "", errs.New(errs.ErrParam, "invalid user pwd data:%s", data)
+		return "", fmt.Errorf("invalid user pwd data:%s", data)
 	}
 	sk, ok := users[userdata[0]]
 	if !ok {
-		return "", errs.New(errs.ErrParam, "user not found, u:%s", userdata[0])
+		return "", fmt.Errorf("user not found, u:%s", userdata[0])
 	}
 	if sk != userdata[1] {
-		return "", errs.New(errs.ErrParam, "sk not match, carry:%s", userdata[1])
+		return "", fmt.Errorf("sk not match, carry:%s", userdata[1])
 	}
 	return userdata[0], nil
 }

@@ -60,7 +60,7 @@ func (f *FileCleaner) worker(tk *CleanEntry) {
 func (f *FileCleaner) doWork(tk *CleanEntry) error {
 	enties, err := os.ReadDir(tk.Dir)
 	if err != nil {
-		return errs.Wrap(errs.ErrIO, "open dir fail", err)
+		return fmt.Errorf("open dir fail, err:%w", err)
 	}
 	if len(enties) == 0 {
 		return nil

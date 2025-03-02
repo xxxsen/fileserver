@@ -5,6 +5,7 @@ import (
 	"fileserver/core"
 	"fileserver/dao"
 	"fileserver/model"
+	"fmt"
 	"io"
 	"time"
 
@@ -32,7 +33,7 @@ func Upload(ctx context.Context, fctx *CommonUploadContext) (uint64, error) {
 		name = fctx.Name
 	)
 	if size > fs.MaxFileSize() {
-		return 0, errs.New(errs.ErrParam, "file size out of limit, should less than:%d", fs.MaxFileSize())
+		return 0, fmt.Errorf("file size out of limit, should less than:%d", fs.MaxFileSize())
 	}
 	if size == 0 {
 		return 0, errs.New(errs.ErrParam, "empty file")
@@ -44,7 +45,7 @@ func Upload(ctx context.Context, fctx *CommonUploadContext) (uint64, error) {
 		MD5:        md5,
 	})
 	if err != nil {
-		return 0, errs.Wrap(errs.ErrStorage, "upload file fail", err)
+		return 0, fmt.Errorf("upload file fail, err:%w", err)
 	}
 	fileid := fctx.IDG.NextId()
 	if _, err := fctx.Dao.CreateFile(ctx, &model.CreateFileRequest{
@@ -59,7 +60,7 @@ func Upload(ctx context.Context, fctx *CommonUploadContext) (uint64, error) {
 			StType:     fs.StType(),
 		},
 	}); err != nil {
-		return 0, errs.Wrap(errs.ErrDatabase, "insert file to db fail", err)
+		return 0, fmt.Errorf("insert file to db fail, err:%w", err)
 	}
 	return fileid, nil
 }

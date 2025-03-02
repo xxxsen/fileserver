@@ -93,10 +93,10 @@ func (c *S3Core) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadRe
 	}
 	bkcnt := utils.CalcFileBlockCount(uctx.GetFileSize(), uint64(uctx.GetBlockSize()))
 	if pctx.PartId == 0 || pctx.PartId > uint64(bkcnt) {
-		return nil, errs.New(errs.ErrParam, "invalid partid:%d", pctx.PartId)
+		return nil, fmt.Errorf("invalid partid:%d", pctx.PartId)
 	}
 	if pctx.PartId != uint64(bkcnt) && pctx.Size != int64(uctx.GetBlockSize()) {
-		return nil, errs.New(errs.ErrParam, "invalid part size, partid:%d, blksize:%d", pctx.PartId, uctx.GetBlockSize())
+		return nil, fmt.Errorf("invalid part size, partid:%d, blksize:%d", pctx.PartId, uctx.GetBlockSize())
 	}
 	if pctx.Size == 0 {
 		return nil, errs.New(errs.ErrParam, "empty size")

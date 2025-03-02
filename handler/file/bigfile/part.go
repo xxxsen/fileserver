@@ -4,9 +4,8 @@ import (
 	"fileserver/core"
 	"fileserver/handler/getter"
 	"fileserver/proto/fileserver/fileinfo"
+	"fmt"
 	"net/http"
-
-	"github.com/xxxsen/common/errs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,7 +26,7 @@ func Part(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 
 	file, header, err := ctx.Request.FormFile("file")
 	if err != nil {
-		return http.StatusOK, nil, errs.Wrap(errs.ErrParam, "get file fail", err)
+		return http.StatusOK, nil, fmt.Errorf("get file fail, err:%w", err)
 	}
 	defer file.Close()
 
@@ -40,7 +39,7 @@ func Part(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 		MD5:        md5,
 	})
 	if err != nil {
-		return http.StatusOK, nil, errs.Wrap(errs.ErrS3, "upload part fail", err)
+		return http.StatusOK, nil, fmt.Errorf("upload part fail, err:%w", err)
 	}
 	return http.StatusOK, &fileinfo.FileUploadPartResponse{}, nil
 }

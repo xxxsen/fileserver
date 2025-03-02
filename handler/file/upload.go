@@ -6,11 +6,11 @@ import (
 	"fileserver/handler/getter"
 	"fileserver/proto/fileserver/fileinfo"
 	"fileserver/utils"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/idgen"
 	"google.golang.org/protobuf/proto"
 )
@@ -28,7 +28,7 @@ func FileUpload(ctx *gin.Context, request interface{}) (int, interface{}, error)
 	header := req.File
 	file, err := header.Open()
 	if err != nil {
-		return http.StatusOK, errs.Wrap(errs.ErrParam, "open file fail", err), nil
+		return http.StatusOK, fmt.Errorf("open file fail, err:%w", err), nil
 	}
 	defer file.Close()
 	fs := getter.MustGetFsClient(ctx)
@@ -44,7 +44,7 @@ func FileUpload(ctx *gin.Context, request interface{}) (int, interface{}, error)
 		Md5Sum: md5,
 	})
 	if err != nil {
-		return http.StatusOK, errs.Wrap(errs.ErrDatabase, "do file upload fail", err), nil
+		return http.StatusOK, fmt.Errorf("do file upload fail, err:%w", err), nil
 	}
 	return http.StatusOK, &fileinfo.FileUploadResponse{
 		DownKey: proto.String(utils.EncodeFileId(fileid)),

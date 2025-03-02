@@ -40,7 +40,7 @@ func streamDownload(ctx *gin.Context, downKey uint64, fs core.IFsCore, fileinfo 
 		StType:  fileinfo.StType,
 	})
 	if err != nil {
-		return errs.Wrap(errs.ErrS3, "create download stream fail", err)
+		return fmt.Errorf("create download stream fail, err:%w", err)
 	}
 	defer rsp.Reader.Close()
 	contentType := mime.DetectFilePath(fileinfo.FileName)
@@ -97,7 +97,7 @@ func Download(ctx *gin.Context, fctx *CommonDownloadContext) error {
 		return daoRsp.Item, true, nil
 	})
 	if err != nil {
-		return errs.Wrap(errs.ErrStorage, "cache get file meta fail", err)
+		return fmt.Errorf("cache get file meta fail, err:%w", err)
 	}
 	if !exist {
 		return errs.New(errs.ErrNotFound, "not found file meta")

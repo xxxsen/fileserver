@@ -7,6 +7,7 @@ import (
 	"fileserver/model"
 	"fileserver/proto/fileserver/fileinfo"
 	"fileserver/utils"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -30,7 +31,7 @@ func End(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 		FileName: req.GetFileName(),
 	})
 	if err != nil {
-		return http.StatusOK, nil, errs.Wrap(errs.ErrS3, "complete upload fail", err)
+		return http.StatusOK, nil, fmt.Errorf("complete upload fail, err:%w", err)
 	}
 	fileid := idgen.NextId()
 	_, err = dao.FileInfoDao.CreateFile(ctx, &model.CreateFileRequest{
@@ -46,7 +47,7 @@ func End(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 		},
 	})
 	if err != nil {
-		return http.StatusOK, nil, errs.Wrap(errs.ErrDatabase, "write file record fail", err)
+		return http.StatusOK, nil, fmt.Errorf("write file record fail, err:%w", err)
 	}
 	return http.StatusOK, &fileinfo.FileUploadEndResponse{
 		DownKey: proto.String(utils.EncodeFileId(fileid)),

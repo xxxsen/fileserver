@@ -66,11 +66,11 @@ func (r *PartReader) cacheGetURL(hash string) (string, error) {
 func (r *PartReader) initReader() error {
 	lnk, err := r.cacheGetURL(r.blk)
 	if err != nil {
-		return errs.Wrap(errs.ErrIO, "get link fail", err)
+		return fmt.Errorf("get link fail, err:%w", err)
 	}
 	req, err := http.NewRequestWithContext(r.ctx, http.MethodGet, lnk, nil)
 	if err != nil {
-		return errs.Wrap(errs.ErrParam, "create http request fail", err)
+		return fmt.Errorf("create http request fail, err:%w", err)
 	}
 	if r.startat != 0 {
 		rangeHeader := fmt.Sprintf("bytes=%d-", r.startat)
@@ -78,12 +78,12 @@ func (r *PartReader) initReader() error {
 	}
 	rsp, err := defaultHTTPClient.Do(req)
 	if err != nil {
-		return errs.Wrap(errs.ErrIO, "do http request fail", err)
+		return fmt.Errorf("do http request fail, err:%w", err)
 	}
 	//caller should close rsp.Body
 	if rsp.StatusCode/100 != 2 {
 		rsp.Body.Close()
-		return errs.New(errs.ErrServiceInternal, "status code not ok, code:%d", rsp.StatusCode)
+		return fmt.Errorf("status code not ok, code:%d", rsp.StatusCode)
 	}
 	if r.startat != 0 && len(rsp.Header.Get("Content-Range")) == 0 {
 		rsp.Body.Close()
@@ -100,10 +100,10 @@ func (r *PartReader) Read(buf []byte) (int, error) {
 		err = r.initReader()
 	})
 	if err != nil {
-		return 0, errs.Wrap(errs.ErrServiceInternal, "init reader fail", err)
+		return 0, fmt.Errorf("init reader fail, err:%w", err)
 	}
 	if !r.isOpen {
-		return 0, errs.New(errs.ErrIO, "reader:%s closed", r.blk)
+		return 0, fmt.Errorf("reader:%s closed", r.blk)
 	}
 	return r.r.Read(buf)
 }
@@ -149,11 +149,11 @@ func NewMultipartReader(ctx context.Context, bot *tgbotapi.BotAPI, meta *Multipa
 
 func (r *MultipartReader) initReader() error {
 	if r.meta.StartAt > r.meta.FileSize {
-		return errs.New(errs.ErrParam, "start at:%d > filesize:%d", r.meta.StartAt, r.meta.FileSize)
+		return fmt.Errorf("start at:%d > filesize:%d", r.meta.StartAt, r.meta.FileSize)
 	}
 	blktotal := utils.CalcFileBlockCount(uint64(r.meta.FileSize), uint64(r.meta.BlkSize))
 	if blktotal != len(r.meta.BlkList) {
-		return errs.New(errs.ErrParam, "file blk size not match, total:%d, calc:%d", len(r.meta.BlkList), blktotal)
+		return fmt.Errorf("file blk size not match, total:%d, calc:%d", len(r.meta.BlkList), blktotal)
 	}
 
 	r.partindex = int(r.meta.StartAt) / int(r.meta.BlkSize)
@@ -169,7 +169,7 @@ func (r *MultipartReader) Read(buf []byte) (int, error) {
 		err = r.initReader()
 	})
 	if err != nil {
-		return 0, errs.Wrap(errs.ErrParam, "init reader fail", err)
+		return 0, fmt.Errorf("init reader fail, err:%w", err)
 	}
 	if !r.isOpen {
 		return 0, errs.New(errs.ErrIO, "reader already closed")

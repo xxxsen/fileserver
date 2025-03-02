@@ -2,9 +2,9 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/xxxsen/common/database"
-	"github.com/xxxsen/common/errs"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -16,7 +16,7 @@ var (
 func InitFileDB(c *database.DBConfig) error {
 	client, err := database.InitDatabase(c)
 	if err != nil {
-		return errs.Wrap(errs.ErrDatabase, "open db fail", err)
+		return fmt.Errorf("open db fail, err:%w", err)
 	}
 	dbFileInfo = client
 	return nil

@@ -23,7 +23,7 @@ func Download(ctx *gin.Context) {
 		FileName: filename,
 	})
 	if err != nil {
-		s3base.WriteError(ctx, http.StatusInternalServerError, errs.Wrap(errs.ErrDatabase, "get mapping info fail", err))
+		s3base.WriteError(ctx, http.StatusInternalServerError, fmt.Errorf("get mapping info fail, err:%w", err))
 		return
 	}
 	if mappingResponse.Item == nil {
@@ -36,7 +36,7 @@ func Download(ctx *gin.Context) {
 		Fs:      fs,
 		Dao:     dao.FileInfoDao,
 	}); err != nil {
-		s3base.WriteError(ctx, http.StatusInternalServerError, errs.Wrap(errs.ErrServiceInternal, "do download fail", err))
+		s3base.WriteError(ctx, http.StatusInternalServerError, fmt.Errorf("do download fail, err:%w", err))
 		return
 	}
 	logutil.GetLogger(ctx).Info("download file finish", zap.String("bucket", bucket), zap.String("obj", obj))

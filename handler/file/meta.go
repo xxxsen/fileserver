@@ -5,9 +5,8 @@ import (
 	"fileserver/model"
 	"fileserver/proto/fileserver/fileinfo"
 	"fileserver/utils"
+	"fmt"
 	"net/http"
-
-	"github.com/xxxsen/common/errs"
 
 	"github.com/gin-gonic/gin"
 	"google.golang.org/protobuf/proto"
@@ -20,13 +19,13 @@ const (
 func Meta(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 	req := request.(*fileinfo.GetFileMetaRequest)
 	if len(req.DownKey) == 0 || len(req.DownKey) > maxListMetaSizePerRequest {
-		return http.StatusOK, nil, errs.New(errs.ErrParam, "invalid down key size:%d", len(req.DownKey))
+		return http.StatusOK, nil, fmt.Errorf("invalid down key size:%d", len(req.DownKey))
 	}
 	downkeys := make([]uint64, 0, len(req.GetDownKey()))
 	for _, item := range req.GetDownKey() {
 		downkey, err := utils.DecodeFileId(item)
 		if err != nil {
-			return http.StatusOK, nil, errs.Wrap(errs.ErrParam, "decode down key fail", err)
+			return http.StatusOK, nil, fmt.Errorf("decode down key fail, err:%w", err)
 		}
 		downkeys = append(downkeys, downkey)
 	}
@@ -38,7 +37,7 @@ func Meta(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 		Limit:  uint32(len(req.DownKey)),
 	})
 	if err != nil {
-		return http.StatusOK, errs.Wrap(errs.ErrDatabase, "read file list fail", err), nil
+		return http.StatusOK, fmt.Errorf("read file list fail, err:%w", err), nil
 	}
 	metalist := fileinfo2pbmeta(req.GetDownKey(), downkeys, daoRsp.List)
 	return http.StatusOK, &fileinfo.GetFileMetaResponse{

@@ -3,8 +3,7 @@ package utils
 import (
 	"encoding/base64"
 	"fileserver/proto/fileserver/fileinfo"
-
-	"github.com/xxxsen/common/errs"
+	"fmt"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -60,7 +59,7 @@ func DecodeUploadID(id string) (*fileinfo.UploadIdCtx, error) {
 func encodeMessageRaw(msg proto.Message) ([]byte, error) {
 	raw, err := proto.Marshal(msg)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrMarshal, "encode pb msg fail", err)
+		return nil, fmt.Errorf("encode pb msg fail, err:%w", err)
 	}
 	return raw, nil
 }
@@ -68,14 +67,14 @@ func encodeMessageRaw(msg proto.Message) ([]byte, error) {
 func encodeMessage(msg proto.Message) (string, error) {
 	raw, err := encodeMessageRaw(msg)
 	if err != nil {
-		return "", errs.Wrap(errs.ErrMarshal, "pb marshal fail", err)
+		return "", fmt.Errorf("pb marshal fail, err:%w", err)
 	}
 	return base64.StdEncoding.EncodeToString(raw), nil
 }
 
 func decodeMessageRaw(raw []byte, dst proto.Message) error {
 	if err := proto.Unmarshal(raw, dst); err != nil {
-		return errs.Wrap(errs.ErrUnmarshal, "proto decode fail", err)
+		return fmt.Errorf("proto decode fail, err:%w", err)
 	}
 	return nil
 }
@@ -83,7 +82,7 @@ func decodeMessageRaw(raw []byte, dst proto.Message) error {
 func decodeMessage(id string, dst proto.Message) error {
 	raw, err := base64.StdEncoding.DecodeString(id)
 	if err != nil {
-		return errs.Wrap(errs.ErrUnmarshal, "base64 decode fail", err)
+		return fmt.Errorf("base64 decode fail, err:%w", err)
 	}
 	return decodeMessageRaw(raw, dst)
 }

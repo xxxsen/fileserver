@@ -4,6 +4,7 @@ import (
 	"fileserver/core"
 	"fileserver/handler/getter"
 	"fileserver/proto/fileserver/fileinfo"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +25,7 @@ func Begin(ctx *gin.Context, request interface{}) (int, interface{}, error) {
 		FileSize: int64(req.GetFileSize()),
 	})
 	if err != nil {
-		return http.StatusOK, nil, errs.Wrap(errs.ErrStorage, "begin upload fail", err)
+		return http.StatusOK, nil, fmt.Errorf("begin upload fail, err:%w", err)
 	}
 	return http.StatusOK, &fileinfo.FileUploadBeginResponse{
 		UploadCtx: proto.String(uploadRsp.UploadID),

@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"fileserver/handler/middlewares/auth"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -36,7 +37,7 @@ func CommonAuthMiddleware(users map[string]string, ats ...auth.IAuth) gin.Handle
 			ak, err := fn.Auth(ctx, users)
 			if err != nil {
 				logger.Error("auth error", zap.String("auth", fn.Name()), zap.Error(err))
-				ctx.AbortWithError(http.StatusUnauthorized, errs.Wrap(errs.ErrUnknown, "internal services error", err))
+				ctx.AbortWithError(http.StatusUnauthorized, fmt.Errorf("internal services error, err:%w", err))
 				return
 			}
 			logger.Debug("user auth succ", zap.String("auth", fn.Name()), zap.String("ak", ak))

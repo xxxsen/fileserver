@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/idgen"
 	"github.com/xxxsen/common/logutil"
 	"go.uber.org/zap"
@@ -35,7 +34,7 @@ func bigFileUpload(ctx *gin.Context) (uint64, string, error) {
 		FileSize: length,
 	})
 	if err != nil {
-		return 0, "", errs.Wrap(errs.ErrServiceInternal, "begin upload fail", err)
+		return 0, "", fmt.Errorf("begin upload fail, err:%w", err)
 	}
 	file := ctx.Request.Body
 	uploadid := beginRsp.UploadID
@@ -47,7 +46,7 @@ func bigFileUpload(ctx *gin.Context) (uint64, string, error) {
 		r := io.LimitReader(file, fs.BlockSize())
 		raw, err := ioutil.ReadAll(r)
 		if err != nil {
-			return 0, "", errs.Wrap(errs.ErrServiceInternal, "read io data fail", err)
+			return 0, "", fmt.Errorf("read io data fail, err:%w", err)
 		}
 		md5v := utils.GetMd5(raw)
 
@@ -59,7 +58,7 @@ func bigFileUpload(ctx *gin.Context) (uint64, string, error) {
 			MD5:        md5v,
 		})
 		if err != nil {
-			return 0, "", errs.Wrap(errs.ErrServiceInternal, "part upload fail", err)
+			return 0, "", fmt.Errorf("part upload fail, err:%w", err)
 		}
 	}
 	obj, _ := s3base.GetS3Object(ctx)
@@ -70,7 +69,7 @@ func bigFileUpload(ctx *gin.Context) (uint64, string, error) {
 		FileName: name,
 	})
 	if err != nil {
-		return 0, "", errs.Wrap(errs.ErrServiceInternal, "finish file upload fail", err)
+		return 0, "", fmt.Errorf("finish file upload fail, err:%w", err)
 	}
 	//写入db
 	fileid := idgen.NextId()
@@ -87,7 +86,7 @@ func bigFileUpload(ctx *gin.Context) (uint64, string, error) {
 		},
 	})
 	if err != nil {
-		return 0, "", errs.Wrap(errs.ErrServiceInternal, "write file to db fail", err)
+		return 0, "", fmt.Errorf("write file to db fail, err:%w", err)
 	}
 	return fileid, rsp.CheckSum, nil
 }
@@ -97,15 +96,15 @@ func smallFileUpload(ctx *gin.Context) (uint64, string, error) {
 	length := ctx.Request.ContentLength
 
 	if length > maxS3UploadFileLimit {
-		return 0, "", errs.New(errs.ErrParam, "size out of limit, s3 file size should less than:%d", maxS3UploadFileLimit)
+		return 0, "", fmt.Errorf("size out of limit, s3 file size should less than:%d", maxS3UploadFileLimit)
 	}
 	raw, err := ioutil.ReadAll(ctx.Request.Body)
 	if err != nil {
-		return 0, "", errs.Wrap(errs.ErrIO, "read body fail", err)
+		return 0, "", fmt.Errorf("read body fail, err:%w", err)
 	}
 	checksum, err := utils.Base64Md52HexMd5(md5Base64)
 	if err != nil {
-		return 0, "", errs.Wrap(errs.ErrParam, "invalid checksum", err)
+		return 0, "", fmt.Errorf("invalid checksum, err:%w", err)
 	}
 	if len(checksum) == 0 {
 		checksum = utils.GetMd5(raw)
@@ -125,7 +124,7 @@ func smallFileUpload(ctx *gin.Context) (uint64, string, error) {
 	}
 	fileid, err := common.Upload(ctx, &uploadRequest)
 	if err != nil {
-		return 0, "", errs.Wrap(errs.ErrIO, "upload fail", err)
+		return 0, "", fmt.Errorf("upload fail, err:%w", err)
 	}
 	return fileid, checksum, nil
 }
@@ -138,7 +137,7 @@ func Upload(ctx *gin.Context) {
 	}
 	fileid, checksum, err := caller(ctx)
 	if err != nil {
-		s3base.WriteError(ctx, http.StatusInternalServerError, errs.Wrap(errs.ErrServiceInternal, "do file upload fail", err))
+		s3base.WriteError(ctx, http.StatusInternalServerError, fmt.Errorf("do file upload fail, err:%w", err))
 		return
 	}
 	bucket, _ := s3base.GetS3Bucket(ctx)
@@ -150,7 +149,7 @@ func Upload(ctx *gin.Context) {
 			FileId:   fileid,
 		},
 	}); err != nil {
-		s3base.WriteError(ctx, http.StatusInternalServerError, errs.Wrap(errs.ErrDatabase, "create mapping fail", err))
+		s3base.WriteError(ctx, http.StatusInternalServerError, fmt.Errorf("create mapping fail, err:%w", err))
 		return
 	}
 	ctx.Writer.Header().Set("ETag", `"`+checksum+`"`)

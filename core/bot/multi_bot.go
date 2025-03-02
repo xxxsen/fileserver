@@ -4,6 +4,7 @@ import (
 	"context"
 	"fileserver/core"
 	"fileserver/utils"
+	"fmt"
 	"sync/atomic"
 
 	"github.com/xxxsen/common/errs"
@@ -41,7 +42,7 @@ func (m *MultiBot) FileDownload(ctx context.Context, fctx *core.FileDownloadRequ
 	}
 	client, ok := m.bots[extra.GetBotHash()]
 	if !ok {
-		return nil, errs.New(errs.ErrServiceInternal, "not found any bot with bothash:%d", extra.GetBotHash())
+		return nil, fmt.Errorf("not found any bot with bothash:%d", extra.GetBotHash())
 	}
 	return client.FileDownload(ctx, fctx)
 }
@@ -75,13 +76,13 @@ func (m *MultiBot) BeginFileUpload(ctx context.Context, fctx *core.BeginFileUplo
 	}
 	uctx, err := utils.DecodeUploadID(rsp.UploadID)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrUnmarshal, "decode upload id to append bot hash fail", err)
+		return nil, fmt.Errorf("decode upload id to append bot hash fail, err:%w", err)
 	}
 	uctx.BotHash = proto.Uint32(bt.GetBotHash())
 	//将bothash打包到uploadid中, 方便后续进行寻址
 	upid, err := utils.EncodeUploadID(uctx)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrMarshal, "encode upload id with bot hash fail", err)
+		return nil, fmt.Errorf("encode upload id with bot hash fail, err:%w", err)
 	}
 	rsp.UploadID = upid
 	return rsp, nil
@@ -90,11 +91,11 @@ func (m *MultiBot) BeginFileUpload(ctx context.Context, fctx *core.BeginFileUplo
 func (m *MultiBot) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadRequest) (*core.PartFileUploadResponse, error) {
 	uctx, err := utils.DecodeUploadID(pctx.UploadId)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrUnmarshal, "decode upload id fail", err)
+		return nil, fmt.Errorf("decode upload id fail, err:%w", err)
 	}
 	bt, ok := m.bots[uctx.GetBotHash()]
 	if !ok {
-		return nil, errs.New(errs.ErrNotFound, "bot with spec hash not found in server, bothash:%d", uctx.GetBotHash())
+		return nil, fmt.Errorf("bot with spec hash not found in server, bothash:%d", uctx.GetBotHash())
 	}
 	return bt.PartFileUpload(ctx, pctx)
 }
@@ -102,11 +103,11 @@ func (m *MultiBot) PartFileUpload(ctx context.Context, pctx *core.PartFileUpload
 func (m *MultiBot) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUploadRequest) (*core.FinishFileUploadResponse, error) {
 	uctx, err := utils.DecodeUploadID(fctx.UploadId)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrUnmarshal, "decode upload id fail", err)
+		return nil, fmt.Errorf("decode upload id fail, err:%w", err)
 	}
 	bt, ok := m.bots[uctx.GetBotHash()]
 	if !ok {
-		return nil, errs.New(errs.ErrNotFound, "bot with spec hash not found in server, bothash:%d", uctx.GetBotHash())
+		return nil, fmt.Errorf("bot with spec hash not found in server, bothash:%d", uctx.GetBotHash())
 	}
 	return bt.FinishFileUpload(ctx, fctx)
 }

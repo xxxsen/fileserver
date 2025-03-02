@@ -6,11 +6,11 @@ import (
 	"encoding/base64"
 	"fileserver/db"
 	"fileserver/model"
+	"fmt"
 	"hash/fnv"
 	"time"
 
 	"github.com/didi/gendry/builder"
-	"github.com/xxxsen/common/errs"
 )
 
 var (
@@ -68,12 +68,12 @@ func (d *mappingInfoDaoImpl) CreateMappingInfo(ctx context.Context, req *model.C
 	}
 	sql, args, err := builder.BuildInsertOnDuplicate(d.Table(), data, update)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrParam, "build insert sql fail", err)
+		return nil, fmt.Errorf("build insert sql fail, err:%w", err)
 	}
 	client := db.GetFileDB()
 	_, err = client.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "insert fail", err)
+		return nil, fmt.Errorf("insert fail, err:%w", err)
 	}
 	return &model.CreateMappingInfoResponse{}, nil
 }
@@ -87,12 +87,12 @@ func (d *mappingInfoDaoImpl) GetMappingInfo(ctx context.Context, req *model.GetM
 	fields := mappingDBFields
 	sql, args, err := builder.BuildSelect(d.Table(), where, fields)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrParam, "build select fail", err)
+		return nil, fmt.Errorf("build select fail, err:%w", err)
 	}
 	client := db.GetFileDB()
 	rows, err := client.QueryContext(ctx, sql, args...)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "query fail", err)
+		return nil, fmt.Errorf("query fail, err:%w", err)
 	}
 	defer rows.Close()
 
@@ -102,13 +102,13 @@ func (d *mappingInfoDaoImpl) GetMappingInfo(ctx context.Context, req *model.GetM
 		if err := rows.Scan(&item.Id, &item.FileName, &item.HashCode, &item.CheckSum,
 			&item.CreateTime, &item.ModifyTime, &item.FileId); err != nil {
 
-			return nil, errs.Wrap(errs.ErrDatabase, "scan fail", err)
+			return nil, fmt.Errorf("scan fail, err:%w", err)
 		}
 		rsp.Item = item
 		break
 	}
 	if err := rows.Err(); err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "scan fail", err)
+		return nil, fmt.Errorf("scan fail, err:%w", err)
 	}
 
 	return rsp, nil

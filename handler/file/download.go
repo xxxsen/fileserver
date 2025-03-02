@@ -5,10 +5,10 @@ import (
 	"fileserver/handler/common"
 	"fileserver/handler/getter"
 	"fileserver/utils"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/xxxsen/common/errs"
 )
 
 type BasicFileDownloadRequest struct {
@@ -20,7 +20,7 @@ func FileDownload(ctx *gin.Context, request interface{}) (int, interface{}, erro
 	strDownKey := req.DownKey
 	downKey, err := utils.DecodeFileId(strDownKey)
 	if err != nil {
-		return http.StatusOK, nil, errs.Wrap(errs.ErrParam, "invalid down key", err)
+		return http.StatusOK, nil, fmt.Errorf("invalid down key, err:%w", err)
 	}
 
 	if err := common.Download(ctx, &common.CommonDownloadContext{
@@ -28,7 +28,7 @@ func FileDownload(ctx *gin.Context, request interface{}) (int, interface{}, erro
 		Fs:      getter.MustGetFsClient(ctx),
 		Dao:     dao.FileInfoDao,
 	}); err != nil {
-		return http.StatusOK, nil, errs.Wrap(errs.ErrServiceInternal, "do download fail", err)
+		return http.StatusOK, nil, fmt.Errorf("do download fail, err:%w", err)
 	}
 	return http.StatusOK, nil, nil
 }

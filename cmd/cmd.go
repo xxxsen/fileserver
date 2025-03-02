@@ -94,7 +94,7 @@ func initStorage(c *config.Config) (core.IFsCore, error) {
 		}
 	}
 	if uploader == nil {
-		return nil, errs.New(errs.ErrParam, "upload fs not found, support only:%+v", names)
+		return nil, fmt.Errorf("upload fs not found, support only:%+v", names)
 	}
 	return core.NewMultiCore(uploader, downloaders...)
 }
@@ -105,10 +105,10 @@ func decodeToType(src interface{}, dst interface{}) error {
 		Result:  dst,
 	})
 	if err != nil {
-		return errs.Wrap(errs.ErrParam, "create decoder fail", err)
+		return fmt.Errorf("create decoder fail, err:%w", err)
 	}
 	if err := c.Decode(src); err != nil {
-		return errs.Wrap(errs.ErrUnmarshal, "decode type fail", err)
+		return fmt.Errorf("decode type fail, err:%w", err)
 	}
 	logutil.GetLogger(context.Background()).Debug("decode type finish", zap.Any("src", src), zap.Any("dst", dst))
 	return nil
@@ -126,13 +126,13 @@ func initS3Core(param interface{}) (core.IFsCore, error) {
 		s3c.WithBucket(s3info.Bucket),
 	)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrStorage, "init s3 fail", err)
+		return nil, fmt.Errorf("init s3 fail, err:%w", err)
 	}
 	s3core, err := s3.New(
 		s3.WithS3Client(client),
 	)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrStorage, "init s3 core fail", err)
+		return nil, fmt.Errorf("init s3 core fail, err:%w", err)
 	}
 	return s3core, nil
 }

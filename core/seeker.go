@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-
-	"github.com/xxxsen/common/errs"
 )
 
-//fakeReader 由于底层的reader并不是真的可以seek,
+// fakeReader 由于底层的reader并不是真的可以seek,
 // 很多场景下, seek_end只是为了获取文件大小, 所以, 我们可以产生一个假的seeker
 type fakeReader struct {
 }
@@ -71,7 +69,7 @@ func (s *SeekCore) Read(b []byte) (int, error) {
 	if s.rc == nil {
 		rc, err := s.openStream(int64(s.cur))
 		if err != nil {
-			return 0, errs.Wrap(errs.ErrIO, "open stream fail", err)
+			return 0, fmt.Errorf("open stream fail, err:%w", err)
 		}
 		s.rc = rc
 	}
@@ -119,10 +117,10 @@ func (s *SeekCore) Seek(offset int64, whence int) (ret int64, err error) {
 	}
 	cur := s.calcOffset(offset, whence)
 	if cur < 0 {
-		return 0, errs.New(errs.ErrParam, "invalid offset, cur:%d", cur)
+		return 0, fmt.Errorf("invalid offset, cur:%d", cur)
 	}
 	if cur > s.fsz {
-		return s.fsz, errs.New(errs.ErrParam, "seek over file size, cur:%d, fsz:%d", cur, s.fsz)
+		return s.fsz, fmt.Errorf("seek over file size, cur:%d, fsz:%d", cur, s.fsz)
 	}
 	if cur == 0 { //对于cur == 0的, 延迟到Read的时候才打开流。
 		s.rc = nil
@@ -131,7 +129,7 @@ func (s *SeekCore) Seek(offset int64, whence int) (ret int64, err error) {
 	}
 	rc, err := s.openStream(cur)
 	if err != nil {
-		return 0, errs.Wrap(errs.ErrIO, "open stream fail", err)
+		return 0, fmt.Errorf("open stream fail, err:%w", err)
 	}
 	s.rc = rc
 	s.cur = cur

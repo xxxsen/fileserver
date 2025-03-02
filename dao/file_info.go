@@ -5,8 +5,7 @@ import (
 	"database/sql"
 	"fileserver/db"
 	"fileserver/model"
-
-	"github.com/xxxsen/common/errs"
+	"fmt"
 
 	"github.com/didi/gendry/builder"
 )
@@ -52,11 +51,11 @@ func (d *fileInfoDaoImpl) ListFile(ctx context.Context, req *model.ListFileReque
 	}
 	sql, args, err := builder.BuildSelect(d.Table(), where, d.Fields())
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrParam, "build select", err)
+		return nil, fmt.Errorf("build select, err:%w", err)
 	}
 	rows, err := d.Client().QueryContext(ctx, sql, args...)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "select fail", err)
+		return nil, fmt.Errorf("select fail, err:%w", err)
 	}
 	defer rows.Close()
 	rs := make([]*model.FileItem, 0, req.Limit)
@@ -65,12 +64,12 @@ func (d *fileInfoDaoImpl) ListFile(ctx context.Context, req *model.ListFileReque
 		if err := rows.Scan(&item.Id, &item.FileName,
 			&item.Hash, &item.FileSize, &item.CreateTime,
 			&item.DownKey, &item.Extra, &item.FileKey, &item.StType); err != nil {
-			return nil, errs.Wrap(errs.ErrDatabase, "scan fail", err)
+			return nil, fmt.Errorf("scan fail, err:%w", err)
 		}
 		rs = append(rs, item)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "scan fail", err)
+		return nil, fmt.Errorf("scan fail, err:%w", err)
 	}
 	return &model.ListFileResponse{List: rs}, nil
 }
@@ -108,11 +107,11 @@ func (d *fileInfoDaoImpl) CreateFile(ctx context.Context, req *model.CreateFileR
 	}
 	sql, args, err := builder.BuildInsertIgnore(d.Table(), data)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrParam, "build insert", err)
+		return nil, fmt.Errorf("build insert, err:%w", err)
 	}
 	_, err = d.Client().ExecContext(ctx, sql, args...)
 	if err != nil {
-		return nil, errs.Wrap(errs.ErrDatabase, "insert fail", err)
+		return nil, fmt.Errorf("insert fail, err:%w", err)
 	}
 	return &model.CreateFileResponse{}, nil
 }

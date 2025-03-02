@@ -49,23 +49,23 @@ func (c *Client) formUpload(ctx context.Context, api string, kv map[string]strin
 	}
 	part, err := writer.CreateFormFile("file", name)
 	if err != nil {
-		return errs.Wrap(errs.ErrServiceInternal, "create form file fail", err)
+		return fmt.Errorf("create form file fail, err:%w", err)
 	}
 	io.Copy(part, file)
 	writer.Close()
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.buildAPI(api), body)
 	if err != nil {
-		return errs.Wrap(errs.ErrParam, "build request fail", err)
+		return fmt.Errorf("build request fail, err:%w", err)
 	}
 	httpReq.Header.Add("Content-Type", writer.FormDataContentType())
 	c.attachAuth(httpReq)
 	httpRsp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {
-		return errs.Wrap(errs.ErrIO, "call http request fail", err)
+		return fmt.Errorf("call http request fail, err:%w", err)
 	}
 	defer httpRsp.Body.Close()
 	if httpRsp.StatusCode != http.StatusOK {
-		return errs.New(errs.ErrUnknown, "http code:%d", httpRsp.StatusCode)
+		return fmt.Errorf("http code:%d", httpRsp.StatusCode)
 	}
 	return nil
 }
@@ -73,35 +73,35 @@ func (c *Client) formUpload(ctx context.Context, api string, kv map[string]strin
 func (c *Client) jsonPost(ctx context.Context, api string, req interface{}, rsp interface{}) error {
 	raw, err := json.Marshal(req)
 	if err != nil {
-		return errs.Wrap(errs.ErrMarshal, "encode json fail", err)
+		return fmt.Errorf("encode json fail, err:%w", err)
 	}
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.buildAPI(api), bytes.NewReader(raw))
 	if err != nil {
-		return errs.Wrap(errs.ErrParam, "build request fail", err)
+		return fmt.Errorf("build request fail, err:%w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	c.attachAuth(httpReq)
 	httpRsp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {
-		return errs.Wrap(errs.ErrIO, "call http request fail", err)
+		return fmt.Errorf("call http request fail, err:%w", err)
 	}
 	defer httpRsp.Body.Close()
 	if httpRsp.StatusCode != http.StatusOK {
-		return errs.New(errs.ErrUnknown, "http code:%d", httpRsp.StatusCode)
+		return fmt.Errorf("http code:%d", httpRsp.StatusCode)
 	}
 
 	body, err := ioutil.ReadAll(httpRsp.Body)
 	if err != nil {
-		return errs.Wrap(errs.ErrIO, "read data fail", err)
+		return fmt.Errorf("read data fail, err:%w", err)
 	}
 	frame := &JsonMessageFrame{
 		Data: rsp,
 	}
 	if err := json.Unmarshal(body, frame); err != nil {
-		return errs.Wrap(errs.ErrUnknown, "decode data fail", err)
+		return fmt.Errorf("decode data fail, err:%w", err)
 	}
 	if frame.Code != 0 {
-		return errs.New(errs.ErrUnknown, "code:%d, msg:%s", frame.Code, frame.Message)
+		return fmt.Errorf("code:%d, msg:%s", frame.Code, frame.Message)
 	}
 	return nil
 }
@@ -109,7 +109,7 @@ func (c *Client) jsonPost(ctx context.Context, api string, req interface{}, rsp 
 func (c *Client) BeginUpload(ctx context.Context, req *BeginUploadRequest) (*BeginUploadResponse, error) {
 	rsp := &BeginUploadResponse{}
 	if err := c.jsonPost(ctx, apiBeginUpload, req, rsp); err != nil {
-		return nil, errs.Wrap(errs.ErrServiceInternal, "call begin upload fail", err)
+		return nil, fmt.Errorf("call begin upload fail, err:%w", err)
 	}
 	return rsp, nil
 }
@@ -123,7 +123,7 @@ func (c *Client) PartUpload(ctx context.Context, req *PartUploadRequest) (*PartU
 		"part_id":    spartid,
 	}
 	if err := c.formUpload(ctx, apiPartUpload, m, name, req.Reader); err != nil {
-		return nil, errs.Wrap(errs.ErrServiceInternal, "call part upload fail", err)
+		return nil, fmt.Errorf("call part upload fail, err:%w", err)
 	}
 	return &PartUploadResponse{}, nil
 }
@@ -131,7 +131,7 @@ func (c *Client) PartUpload(ctx context.Context, req *PartUploadRequest) (*PartU
 func (c *Client) EndUpload(ctx context.Context, req *EndUploadRequest) (*EndUploadResponse, error) {
 	rsp := &EndUploadResponse{}
 	if err := c.jsonPost(ctx, apiEndUpload, req, rsp); err != nil {
-		return nil, errs.Wrap(errs.ErrServiceInternal, "call end upload fail", err)
+		return nil, fmt.Errorf("call end upload fail, err:%w", err)
 	}
 	return rsp, nil
 }
@@ -139,7 +139,7 @@ func (c *Client) EndUpload(ctx context.Context, req *EndUploadRequest) (*EndUplo
 func (c *Client) UploadFile(ctx context.Context, f string) (string, error) {
 	st, err := os.Stat(f)
 	if err != nil {
-		return "", errs.Wrap(errs.ErrParam, "stat file fail", err)
+		return "", fmt.Errorf("stat file fail, err:%w", err)
 	}
 	sz := st.Size()
 	if sz == 0 {
@@ -147,7 +147,7 @@ func (c *Client) UploadFile(ctx context.Context, f string) (string, error) {
 	}
 	file, err := os.Open(f)
 	if err != nil {
-		return "", errs.Wrap(errs.ErrIO, "open file fail", err)
+		return "", fmt.Errorf("open file fail, err:%w", err)
 	}
 	defer file.Close()
 	//begin
@@ -155,7 +155,7 @@ func (c *Client) UploadFile(ctx context.Context, f string) (string, error) {
 		FileSize: sz,
 	})
 	if err != nil {
-		return "", errs.Wrap(errs.ErrServiceInternal, "begin upload fail", err)
+		return "", fmt.Errorf("begin upload fail, err:%w", err)
 	}
 	//part
 	count := utils.CalcFileBlockCount(uint64(sz), uint64(beginRsp.BlockSize))
@@ -164,10 +164,10 @@ func (c *Client) UploadFile(ctx context.Context, f string) (string, error) {
 		r := io.LimitReader(file, int64(beginRsp.BlockSize))
 		md5v, err := utils.ReaderMd5(r)
 		if err != nil {
-			return "", errs.Wrap(errs.ErrIO, "calc md5 fail", err)
+			return "", fmt.Errorf("calc md5 fail, err:%w", err)
 		}
 		if _, err := file.Seek(int64(i*int(beginRsp.BlockSize)), io.SeekStart); err != nil {
-			return "", errs.Wrap(errs.ErrIO, "seek fail", err)
+			return "", fmt.Errorf("seek fail, err:%w", err)
 		}
 		if _, err := c.PartUpload(ctx, &PartUploadRequest{
 			PartID:    uint32(partid),
@@ -175,7 +175,7 @@ func (c *Client) UploadFile(ctx context.Context, f string) (string, error) {
 			UploadCtx: beginRsp.UploadCtx,
 			Reader:    io.LimitReader(file, int64(beginRsp.BlockSize)),
 		}); err != nil {
-			return "", errs.Wrap(errs.ErrIO, "part upload fail", err)
+			return "", fmt.Errorf("part upload fail, err:%w", err)
 		}
 	}
 	//end
@@ -184,7 +184,7 @@ func (c *Client) UploadFile(ctx context.Context, f string) (string, error) {
 		FileName:  filepath.Base(f),
 	})
 	if err != nil {
-		return "", errs.Wrap(errs.ErrIO, "end upload fail", err)
+		return "", fmt.Errorf("end upload fail, err:%w", err)
 	}
 	return endRsp.DownKey, nil
 }
