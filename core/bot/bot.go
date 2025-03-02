@@ -192,9 +192,6 @@ func (c *TGBot) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*
 	if err != nil {
 		return nil, fmt.Errorf("encode bot extra fail, err:%w", err)
 	}
-	if err != nil {
-		return nil, err
-	}
 	return &core.FileUploadResponse{
 		Key:      fileid,
 		Extra:    extra,
