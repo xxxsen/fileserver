@@ -3,7 +3,6 @@ package core
 import "fmt"
 
 const (
-	StTypeS3    = 1
 	StTypeTGBot = 2
 )
 
@@ -24,6 +23,5 @@ func TypeToName(st int) string {
 }
 
 var typeNameMap = map[int]string{
-	StTypeS3:    "s3",
 	StTypeTGBot: "tgbot",
 }
