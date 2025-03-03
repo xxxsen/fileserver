@@ -3,7 +3,6 @@ package s3base
 import (
 	"bytes"
 	"context"
-	"fileserver/utils"
 	"io"
 	"testing"
 
@@ -17,7 +16,7 @@ func TestS3UploadDownload(t *testing.T) {
 	ctx := context.Background()
 	content := "hello world, this is a test file xxxx for s3 upload"
 	fileid := "aaaa/1234567.txt"
-	cks, err := client.Upload(ctx, fileid, bytes.NewReader([]byte(content)), int64(len(content)), utils.GetMd5([]byte(content)))
+	cks, err := client.Upload(ctx, fileid, bytes.NewReader([]byte(content)), int64(len(content)))
 	assert.NoError(t, err)
 	t.Logf("upload suss, cks:%s", cks)
 

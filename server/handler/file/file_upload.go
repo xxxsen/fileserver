@@ -2,7 +2,6 @@ package file
 
 import (
 	"context"
-	"fileserver/proto/fileserver/fileinfo"
 	"fileserver/proxyutil"
 	"fileserver/server/model"
 	"fileserver/server/stream"
@@ -11,7 +10,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"google.golang.org/protobuf/proto"
 )
 
 func FileUpload(c *gin.Context, ctx context.Context, request interface{}) {
@@ -28,7 +26,7 @@ func FileUpload(c *gin.Context, ctx context.Context, request interface{}) {
 		proxyutil.Fail(c, http.StatusInternalServerError, fmt.Errorf("upload file fail, err:%w", err))
 		return
 	}
-	proxyutil.Success(c, &fileinfo.FileUploadResponse{
-		DownKey: proto.String(utils.EncodeFileId(fileid)),
+	proxyutil.Success(c, &model.UploadFileResponse{
+		DownKey: utils.EncodeFileId(fileid),
 	})
 }

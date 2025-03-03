@@ -13,12 +13,12 @@ require (
 	github.com/xxxsen/common v0.1.14
 	github.com/xxxsen/s3verify v0.0.3
 	go.uber.org/zap v1.23.0
-	google.golang.org/protobuf v1.33.0
 )
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	modernc.org/libc v1.37.6 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.7.2 // indirect
