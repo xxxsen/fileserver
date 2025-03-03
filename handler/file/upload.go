@@ -11,7 +11,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/xxxsen/common/idgen"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -19,9 +18,6 @@ type BasicFileUploadRequest struct {
 	File *multipart.FileHeader `form:"file" binding:"required"`
 	MD5  string                `form:"md5"`
 }
-
-var ImageUpload = FileUpload
-var VideoUpload = FileUpload
 
 func FileUpload(c *gin.Context, ctx context.Context, request interface{}) {
 	req := request.(*BasicFileUploadRequest)
@@ -35,7 +31,6 @@ func FileUpload(c *gin.Context, ctx context.Context, request interface{}) {
 	md5 := req.MD5
 
 	fileid, err := common.Upload(ctx, &common.CommonUploadContext{
-		IDG:    idgen.Default(),
 		Name:   header.Filename,
 		Size:   header.Size,
 		Reader: file,

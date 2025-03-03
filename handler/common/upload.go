@@ -9,13 +9,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/idgen"
 )
 
 type CommonUploadContext struct {
-	IDG idgen.IDGenerator
-
 	Name   string
 	Size   int64
 	Reader io.ReadSeeker
@@ -34,7 +31,7 @@ func Upload(ctx context.Context, fctx *CommonUploadContext) (uint64, error) {
 		return 0, fmt.Errorf("file size out of limit, should less than:%d", fs.MaxFileSize())
 	}
 	if size == 0 {
-		return 0, errs.New(errs.ErrParam, "empty file")
+		return 0, fmt.Errorf("empty file")
 	}
 
 	rsp, err := fs.FileUpload(ctx, &core.FileUploadRequest{
@@ -45,7 +42,7 @@ func Upload(ctx context.Context, fctx *CommonUploadContext) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("upload file fail, err:%w", err)
 	}
-	fileid := fctx.IDG.NextId()
+	fileid := idgen.NextId()
 	if _, err := dao.FileInfoDao.CreateFile(ctx, &model.CreateFileRequest{
 		Item: &model.FileItem{
 			FileName:   name,

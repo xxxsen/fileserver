@@ -11,10 +11,8 @@ import (
 	"fileserver/server"
 	"flag"
 	"fmt"
-	"strings"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/xxxsen/common/idgen"
 	"github.com/xxxsen/common/logger"
 	"github.com/xxxsen/common/logutil"
 	s3c "github.com/xxxsen/common/s3"
@@ -37,17 +35,12 @@ func main() {
 	if err := db.InitDB(c.DBFile); err != nil {
 		logger.Fatal("init media db fail", zap.Error(err))
 	}
-	if err := idgen.Init(c.IDGenInfo.WorkerID); err != nil {
-		logger.Fatal("init idgen fail", zap.Error(err))
-	}
-	fs, err := initStorage(c)
-	if err != nil {
+	if err := initStorage(c); err != nil {
 		logger.Fatal("init storage fail", zap.Error(err))
 	}
-	core.SetFsCore(fs)
 
 	svr, err := server.New(c.ServerInfo.Address,
-		server.WithS3Buckets(c.FakeS3Info.BucketList),
+		server.WithS3Buckets(c.S3Bucket),
 		server.WithUser(c.AuthInfo),
 	)
 	if err != nil {
@@ -58,34 +51,13 @@ func main() {
 	}
 }
 
-func initStorage(c *config.Config) (core.IFsCore, error) {
-	names := make([]string, 0, len(c.FsInfo))
-	var uploader core.IFsCore
-	downloaders := make([]core.IFsCore, 0, len(c.FsInfo))
-	uploadfsname := strings.ToLower(c.UploadFs)
-	for name, param := range c.FsInfo {
-		var c core.IFsCore
-		var err error
-		name := strings.ToLower(name)
-		switch name {
-		case "s3":
-			c, err = initS3Core(param)
-		case "tgbot":
-			c, err = initMultiTGBotCore(param)
-		}
-		if err != nil {
-			return nil, fmt.Errorf("init core:%s fail, err:%w", name, err)
-		}
-		names = append(names, name)
-		downloaders = append(downloaders, c)
-		if name == uploadfsname {
-			uploader = c
-		}
+func initStorage(c *config.Config) error {
+	botcore, err := bot.New(bot.WithAuth(int64(c.BotInfo.Chatid), c.BotInfo.Token))
+	if err != nil {
+		return err
 	}
-	if uploader == nil {
-		return nil, fmt.Errorf("upload fs not found, support only:%+v", names)
-	}
-	return core.NewMultiCore(uploader, downloaders...)
+	core.SetFsCore(botcore)
+	return nil
 }
 
 func decodeToType(src interface{}, dst interface{}) error {
