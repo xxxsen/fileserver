@@ -2,43 +2,14 @@ package s3base
 
 import (
 	"encoding/xml"
+	"fileserver/proxyutil"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/xxxsen/common/errs"
 	"github.com/xxxsen/common/logutil"
 	"github.com/xxxsen/common/trace"
 	"go.uber.org/zap"
 )
-
-const (
-	keyS3Bucket = "x-s3-bucket"
-	keyS3Object = "x-s3-object"
-)
-
-func GetS3Bucket(ctx *gin.Context) (string, bool) {
-	val, ok := ctx.Get(keyS3Bucket)
-	if !ok {
-		return "", false
-	}
-	return val.(string), true
-}
-
-func GetS3Object(ctx *gin.Context) (string, bool) {
-	val, ok := ctx.Get(keyS3Object)
-	if !ok {
-		return "", false
-	}
-	return val.(string), true
-}
-
-func SetS3Bucket(ctx *gin.Context, bk string) {
-	ctx.Set(keyS3Bucket, bk)
-}
-
-func SetS3Object(ctx *gin.Context, obj string) {
-	ctx.Set(keyS3Object, obj)
-}
 
 type S3ErrorMessage struct {
 	XMLName    xml.Name `xml:"Error"`
@@ -65,24 +36,23 @@ func SimpleReply(ctx *gin.Context) {
 	}
 }
 
-func WriteError(ctx *gin.Context, statuscode int, xerr error) {
-	bucket, _ := GetS3Bucket(ctx)
-	obj, _ := GetS3Object(ctx)
+func WriteError(c *gin.Context, statuscode int, err error) {
+	ctx := c.Request.Context()
+	info, _ := proxyutil.GetS3Info(ctx)
 	logutil.GetLogger(ctx).Error("write err to client",
+		zap.Error(err),
 		zap.Int("status_code", statuscode),
-		zap.String("bucket", bucket),
-		zap.String("obj", obj),
-		zap.Error(xerr))
+		zap.String("bucket", info.Bucket),
+		zap.String("obj", info.FileID))
 	traceid, _ := trace.GetTraceId(ctx)
-	err := errs.FromError(xerr)
 	e := &S3ErrorMessage{
-		Code:       fmt.Sprintf("%d", err.Code()),
-		Message:    err.Message(),
-		Key:        obj,
-		BucketName: bucket,
-		Resouce:    fmt.Sprintf("%s/%s", bucket, obj),
+		Code:       "500",
+		Message:    err.Error(),
+		Key:        info.FileID,
+		BucketName: info.Bucket,
+		Resouce:    fmt.Sprintf("%s/%s", info.Bucket, info.FileID),
 		RequestId:  traceid,
 		HostId:     traceid,
 	}
-	ResponseWithError(ctx, statuscode, e)
+	ResponseWithError(c, statuscode, e)
 }

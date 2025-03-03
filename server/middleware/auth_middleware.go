@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fileserver/auth"
+	"fileserver/proxyutil"
 	"fmt"
 	"net/http"
 
@@ -26,24 +27,31 @@ func CommonAuth(users map[string]string) gin.HandlerFunc {
 }
 
 func CommonAuthMiddleware(users map[string]string, ats ...auth.IAuth) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		logger := logutil.GetLogger(ctx).With(zap.String("method", ctx.Request.Method),
-			zap.String("path", ctx.Request.URL.Path), zap.String("ip", ctx.ClientIP()))
+	return func(c *gin.Context) {
+		ctx := c.Request.Context()
+		logger := logutil.GetLogger(ctx).With(zap.String("method", c.Request.Method),
+			zap.String("path", c.Request.URL.Path), zap.String("ip", c.ClientIP()))
 
 		for _, fn := range ats {
-			if !fn.IsMatchAuthType(ctx) {
+			if !fn.IsMatchAuthType(c) {
 				continue
 			}
-			ak, err := fn.Auth(ctx, users)
+			ak, err := fn.Auth(c, users)
 			if err != nil {
 				logger.Error("auth error", zap.String("auth", fn.Name()), zap.Error(err))
-				ctx.AbortWithError(http.StatusUnauthorized, fmt.Errorf("internal services error, err:%w", err))
+				c.AbortWithError(http.StatusUnauthorized, fmt.Errorf("internal services error, err:%w", err))
 				return
 			}
 			logger.Debug("user auth succ", zap.String("auth", fn.Name()), zap.String("ak", ak))
+			ctx := c.Request.Context()
+			ctx = proxyutil.SetUserInfo(ctx, &proxyutil.UserInfo{
+				AuthType: fn.Name(),
+				Username: ak,
+			})
+			c.Request = c.Request.WithContext(ctx)
 			return
 		}
 		logger.Error("need auth")
-		ctx.AbortWithError(http.StatusUnauthorized, errs.New(errs.ErrParam, "need auth"))
+		c.AbortWithError(http.StatusUnauthorized, errs.New(errs.ErrParam, "need auth"))
 	}
 }

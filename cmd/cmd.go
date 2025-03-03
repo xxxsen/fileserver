@@ -1,19 +1,16 @@
 package main
 
 import (
-	"context"
 	_ "fileserver/auth"
 	"fileserver/config"
-	"fileserver/cron"
 	"fileserver/db"
+	"fileserver/filesystem"
+	"fileserver/filesystem/telegram"
 	"fileserver/server"
-	"fileserver/tgfile"
 	"flag"
-	"fmt"
-	"time"
 
+	"github.com/xxxsen/common/idgen"
 	"github.com/xxxsen/common/logger"
-	"github.com/xxxsen/common/logutil"
 	"go.uber.org/zap"
 )
 
@@ -28,13 +25,12 @@ func main() {
 	}
 	logitem := c.LogInfo
 	logger := logger.Init(logitem.File, logitem.Level, int(logitem.FileCount), int(logitem.FileSize), int(logitem.KeepDays), logitem.Console)
-
+	if err := idgen.Init(1); err != nil {
+		logger.Fatal("init idgen fail", zap.Error(err))
+	}
 	logger.Info("recv config", zap.Any("config", c))
 	if err := db.InitDB(c.DBFile); err != nil {
 		logger.Fatal("init media db fail", zap.Error(err))
-	}
-	if err := initCron(c); err != nil {
-		logger.Fatal("init cron job failed", zap.Error(err))
 	}
 	if err := initStorage(c); err != nil {
 		logger.Fatal("init storage fail", zap.Error(err))
@@ -54,28 +50,10 @@ func main() {
 }
 
 func initStorage(c *config.Config) error {
-	botfs, err := tgfile.New(
-		tgfile.WithAuth(int64(c.BotInfo.Chatid), c.BotInfo.Token),
-		tgfile.WithTmpDir(c.TempDir),
-	)
+	tfs, err := telegram.New(int64(c.BotInfo.Chatid), c.BotInfo.Token)
 	if err != nil {
 		return err
 	}
-	tgfile.SetFileSystem(botfs)
-	return nil
-}
-
-func initCron(c *config.Config) error {
-	cr := cron.New()
-	jobs := []cron.ICronJob{
-		cron.NewCleanTempFileCron(c.TempDir, 7*24*time.Hour),
-	}
-	for _, job := range jobs {
-		if err := cr.AddJob(job); err != nil {
-			return fmt.Errorf("init cron job failed, name:%s, err:%w", job.Name(), err)
-		}
-		logutil.GetLogger(context.Background()).Info("init job succ", zap.String("name", job.Name()))
-	}
-	cr.Start()
+	filesystem.SetFileSystem(tfs)
 	return nil
 }

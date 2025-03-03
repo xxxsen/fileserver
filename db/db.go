@@ -20,30 +20,26 @@ var (
 var initList = []initSql{
 	{
 		name: "create_file_info_tab",
-		sql: `CREATE TABLE IF NOT EXISTS file_info_tab (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_name TEXT NOT NULL,
-    hash TEXT NOT NULL,
-    file_size INTEGER NOT NULL,
-    create_time INTEGER NOT NULL,
-    down_key INTEGER NOT NULL,
-    file_key TEXT NOT NULL,
-    extra BLOB NOT NULL,
-    st_type INTEGER NOT NULL,
-    UNIQUE(down_key)
+		sql: `CREATE TABLE IF NOT EXISTS tg_file_tab (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, -- 自增 ID
+    file_id INTEGER UNIQUE NOT NULL,         -- 文件 ID, 唯一键
+    file_name TEXT NOT NULL,              -- 文件名
+    file_size INTEGER NOT NULL,           -- 文件大小
+    file_part_count INTEGER NOT NULL,     -- 文件分片数量
+    ctime INTEGER NOT NULL, -- 创建时间
+    mtime INTEGER NOT NULL, -- 修改时间
+    file_state INTEGER NOT NULL           -- 文件状态
 );`,
 	},
 	{
 		name: "create_mapping_info_tab",
-		sql: `CREATE TABLE IF NOT EXISTS mapping_info_tab (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_name TEXT NOT NULL,
-    hash_code INTEGER NOT NULL,
-    check_sum TEXT NOT NULL,
-    create_time INTEGER NOT NULL,
-    modify_time INTEGER NOT NULL,
-    file_id INTEGER NOT NULL,
-    UNIQUE(check_sum)
+		sql: `CREATE TABLE IF NOT EXISTS tg_file_part_tab (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,  -- 自增 ID
+    file_id INTEGER UNIQUE NOT NULL,       -- 文件 ID(64 位整数)，唯一键
+    file_key TEXT NOT NULL,                -- 文件 Key
+    file_part_id INTEGER NOT NULL,         -- 文件分片 ID
+    ctime INTEGER NOT NULL,                -- 创建时间（存 UNIX 时间戳）
+    mtime INTEGER NOT NULL                 -- 修改时间（存 UNIX 时间戳）
 );`,
 	},
 }
