@@ -2,6 +2,8 @@ package dao
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fileserver/db"
 	"fileserver/entity"
 	"time"
@@ -28,9 +30,16 @@ func (f *fileMappingDao) table() string {
 	return "tg_file_mapping_tab"
 }
 
+func (f *fileMappingDao) name2hash(name string) string {
+	h := md5.New()
+	h.Write([]byte(name))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
 func (f *fileMappingDao) GetFileMapping(ctx context.Context, req *entity.GetFileMappingRequest) (*entity.GetFileMappingResponse, bool, error) {
+	hash := f.name2hash(req.FileName)
 	where := map[string]interface{}{
-		"file_name": req.FileName,
+		"file_hash": hash,
 	}
 	rs := make([]*entity.GetFileMappingItem, 0, 1)
 	dbkit.SimpleQuery(ctx, db.GetClient(), f.table(), where, &rs)
@@ -47,6 +56,7 @@ func (f *fileMappingDao) CreateFileMapping(ctx context.Context, req *entity.Crea
 	data := []map[string]interface{}{
 		{
 			"file_name": req.FileName,
+			"file_hash": f.name2hash(req.FileName),
 			"file_id":   req.FileId,
 			"ctime":     now,
 			"mtime":     now,

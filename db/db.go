@@ -32,12 +32,24 @@ var initList = []initSql{
 );`,
 	},
 	{
-		name: "create_mapping_info_tab",
+		name: "create_file_part_tab",
 		sql: `CREATE TABLE IF NOT EXISTS tg_file_part_tab (
     id INTEGER PRIMARY KEY AUTOINCREMENT,  -- 自增 ID
     file_id INTEGER UNIQUE NOT NULL,       -- 文件 ID(64 位整数)，唯一键
     file_key TEXT NOT NULL,                -- 文件 Key
     file_part_id INTEGER NOT NULL,         -- 文件分片 ID
+    ctime INTEGER NOT NULL,                -- 创建时间（存 UNIX 时间戳）
+    mtime INTEGER NOT NULL                 -- 修改时间（存 UNIX 时间戳）
+);`,
+	},
+	{
+		name: "create_file_mapping_tab",
+		sql: `
+CREATE TABLE IF NOT EXISTS tg_file_mapping_tab (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,  -- 自增 ID
+    file_name TEXT NOT NULL,               -- 文件名
+	file_hash TEXT UNIQUE NOT NULL,        -- 文件名hash
+    file_id INTEGER NOT NULL,              -- 文件 ID,唯一键
     ctime INTEGER NOT NULL,                -- 创建时间（存 UNIX 时间戳）
     mtime INTEGER NOT NULL                 -- 修改时间（存 UNIX 时间戳）
 );`,
