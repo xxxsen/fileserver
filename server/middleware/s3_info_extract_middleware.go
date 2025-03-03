@@ -27,7 +27,7 @@ func ExtractS3InfoMiddleware() gin.HandlerFunc {
 		}
 		if len(parts) > 1 {
 			obj := parts[1]
-			s3info.FileID = obj
+			s3info.Object = obj
 		}
 		c.Request = c.Request.WithContext(proxyutil.SetS3Info(c.Request.Context(), s3info))
 	}

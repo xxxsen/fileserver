@@ -43,14 +43,14 @@ func WriteError(c *gin.Context, statuscode int, err error) {
 		zap.Error(err),
 		zap.Int("status_code", statuscode),
 		zap.String("bucket", info.Bucket),
-		zap.String("obj", info.FileID))
+		zap.String("obj", info.Object))
 	traceid, _ := trace.GetTraceId(ctx)
 	e := &S3ErrorMessage{
 		Code:       "500",
 		Message:    err.Error(),
-		Key:        info.FileID,
+		Key:        info.Object,
 		BucketName: info.Bucket,
-		Resouce:    fmt.Sprintf("%s/%s", info.Bucket, info.FileID),
+		Resouce:    fmt.Sprintf("%s/%s", info.Bucket, info.Object),
 		RequestId:  traceid,
 		HostId:     traceid,
 	}

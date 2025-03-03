@@ -4,7 +4,7 @@ import "context"
 
 type S3Info struct {
 	Bucket string
-	FileID string
+	Object string
 }
 
 type s3InfoType struct{}

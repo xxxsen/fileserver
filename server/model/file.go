@@ -10,6 +10,10 @@ type UploadFileRequest struct {
 	File *multipart.FileHeader `form:"file" binding:"required"`
 }
 
+type UploadFileResponse struct {
+	DownKey string `json:"down_key"`
+}
+
 type GetFileInfoRequest struct {
 	DownKey []string `json:"down_key"`
 }

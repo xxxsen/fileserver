@@ -3,8 +3,10 @@ package server
 import (
 	"fileserver/proxyutil"
 	"fileserver/server/handler/file"
+	"fileserver/server/handler/s3"
 	"fileserver/server/middleware"
 	"fileserver/server/model"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,13 +42,13 @@ func (s *Server) initBasic(router *gin.Engine) {
 	router.POST("/upload/file", authMiddleware, proxyutil.WrapBizFunc(file.FileUpload, &model.UploadFileRequest{}))
 	router.GET("/file", proxyutil.WrapBizFunc(file.FileDownload, &model.DownloadFileRequest{}))
 	router.POST("/file/meta", proxyutil.WrapBizFunc(file.GetMetaInfo, &model.GetFileInfoRequest{}))
-	// for _, bk := range s.c.s3Buckets {
-	// 	bucketPath := fmt.Sprintf("/%s", bk)
-	// 	routerPath := fmt.Sprintf("%s/*s3Param", bucketPath)
-	// 	router.GET(bucketPath, middleware.S3InfoExtractMiddleware(), s3.GetBucket)
-	// 	router.GET(routerPath, middleware.S3InfoExtractMiddleware(), s3.Download)
-	// 	router.PUT(routerPath, authMiddleware, middleware.S3InfoExtractMiddleware(), s3.Upload)
-	// }
+	for _, bk := range s.c.s3Buckets {
+		bucketPath := fmt.Sprintf("/%s", bk)
+		routerPath := fmt.Sprintf("%s/*s3Param", bucketPath)
+		router.GET(bucketPath, middleware.ExtractS3InfoMiddleware(), s3.GetBucket)
+		router.GET(routerPath, middleware.ExtractS3InfoMiddleware(), s3.DownloadObject)
+		router.PUT(routerPath, authMiddleware, middleware.ExtractS3InfoMiddleware(), s3.UploadObject)
+	}
 }
 
 func (s *Server) initS3(router *gin.Engine) {
