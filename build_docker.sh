@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build -t xxxsen/file_server:test .
+docker build -t xxxsen/tgfile:test .
