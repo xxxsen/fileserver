@@ -1,4 +1,4 @@
-package bot
+package tgfile
 
 type config struct {
 	chatid  int64

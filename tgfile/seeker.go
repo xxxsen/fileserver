@@ -1,4 +1,4 @@
-package core
+package tgfile
 
 import (
 	"context"
@@ -23,7 +23,7 @@ var defaultFakeReader = &fakeReader{}
 
 type SeekCore struct {
 	ctx    context.Context
-	c      IFsCore
+	c      IFileSystem
 	key    string
 	extra  []byte
 	rc     io.ReadCloser
@@ -33,7 +33,7 @@ type SeekCore struct {
 	sttype uint8
 }
 
-func NewSeeker(ctx context.Context, c IFsCore, sz int64, key string, extra []byte, sttype uint8) *SeekCore {
+func NewSeeker(ctx context.Context, c IFileSystem, sz int64, key string, extra []byte, sttype uint8) *SeekCore {
 	return &SeekCore{
 		ctx:    ctx,
 		c:      c,

@@ -2,9 +2,9 @@ package common
 
 import (
 	"context"
-	"fileserver/core"
 	"fileserver/dao"
 	"fileserver/model"
+	"fileserver/tgfile"
 	"fmt"
 	"io"
 	"net/http"
@@ -29,8 +29,8 @@ type CommonDownloadContext struct {
 	DownKey uint64
 }
 
-func streamDownload(ctx *gin.Context, downKey uint64, fs core.IFsCore, fileinfo *model.FileItem) error {
-	rsp, err := fs.FileDownload(ctx, &core.FileDownloadRequest{
+func streamDownload(ctx *gin.Context, downKey uint64, fileinfo *model.FileItem) error {
+	rsp, err := tgfile.FileDownload(ctx, &tgfile.FileDownloadRequest{
 		Key:     fileinfo.FileKey,
 		Extra:   fileinfo.Extra,
 		StartAt: 0,
@@ -100,10 +100,10 @@ func Download(ctx *gin.Context, fctx *CommonDownloadContext) error {
 	fileinfo := ifileinfo.(*model.FileItem)
 
 	if r := ctx.GetHeader("range"); len(r) == 0 || fileinfo.FileSize < miniEnableRangeDownloadSize { //filesize < 200MB will not enable range download
-		return streamDownload(ctx, downKey, core.GetFsCore(), fileinfo)
+		return streamDownload(ctx, downKey, fileinfo)
 	}
 
-	file := core.NewSeeker(ctx, core.GetFsCore(), int64(fileinfo.FileSize), fileinfo.FileKey, fileinfo.Extra, fileinfo.StType)
+	file := tgfile.NewSeeker(ctx, tgfile.GetFileSystem(), int64(fileinfo.FileSize), fileinfo.FileKey, fileinfo.Extra, fileinfo.StType)
 	defer file.Close()
 	http.ServeContent(ctx.Writer, ctx.Request, strconv.Quote(fileinfo.FileName), time.Unix(int64(fileinfo.CreateTime), 0), file)
 	return nil

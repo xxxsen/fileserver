@@ -1,13 +1,6 @@
-package core
+package tgfile
 
-import (
-	"context"
-	"io"
-)
-
-var (
-	impl IFsCore
-)
+import "io"
 
 type FileUploadRequest struct {
 	ReadSeeker io.ReadSeeker
@@ -61,23 +54,4 @@ type FileDownloadRequest struct {
 
 type FileDownloadResponse struct {
 	Reader io.ReadCloser
-}
-
-type IFsCore interface {
-	StType() uint8
-	BlockSize() int64
-	MaxFileSize() int64
-	FileUpload(ctx context.Context, uctx *FileUploadRequest) (*FileUploadResponse, error)
-	FileDownload(ctx context.Context, fctx *FileDownloadRequest) (*FileDownloadResponse, error)
-	BeginFileUpload(ctx context.Context, fctx *BeginFileUploadRequest) (*BeginFileUploadResponse, error)
-	PartFileUpload(ctx context.Context, pctx *PartFileUploadRequest) (*PartFileUploadResponse, error)
-	FinishFileUpload(ctx context.Context, fctx *FinishFileUploadRequest) (*FinishFileUploadResponse, error)
-}
-
-func SetFsCore(c IFsCore) {
-	impl = c
-}
-
-func GetFsCore() IFsCore {
-	return impl
 }

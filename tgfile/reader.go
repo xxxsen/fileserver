@@ -1,4 +1,4 @@
-package bot
+package tgfile
 
 import (
 	"crypto/md5"

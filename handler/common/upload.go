@@ -2,9 +2,9 @@ package common
 
 import (
 	"context"
-	"fileserver/core"
 	"fileserver/dao"
 	"fileserver/model"
+	"fileserver/tgfile"
 	"fmt"
 	"io"
 	"time"
@@ -25,16 +25,15 @@ func Upload(ctx context.Context, fctx *CommonUploadContext) (uint64, error) {
 		md5  = fctx.Md5Sum
 		size = fctx.Size
 		name = fctx.Name
-		fs   = core.GetFsCore()
 	)
-	if size > fs.MaxFileSize() {
-		return 0, fmt.Errorf("file size out of limit, should less than:%d", fs.MaxFileSize())
+	if size > tgfile.MaxFileSize() {
+		return 0, fmt.Errorf("file size out of limit, should less than:%d", tgfile.MaxFileSize())
 	}
 	if size == 0 {
 		return 0, fmt.Errorf("empty file")
 	}
 
-	rsp, err := fs.FileUpload(ctx, &core.FileUploadRequest{
+	rsp, err := tgfile.FileUpload(ctx, &tgfile.FileUploadRequest{
 		ReadSeeker: file,
 		Size:       size,
 		MD5:        md5,
@@ -52,7 +51,7 @@ func Upload(ctx context.Context, fctx *CommonUploadContext) (uint64, error) {
 			DownKey:    fileid,
 			FileKey:    rsp.Key,
 			Extra:      rsp.Extra,
-			StType:     fs.StType(),
+			StType:     tgfile.StType(),
 		},
 	}); err != nil {
 		return 0, fmt.Errorf("insert file to db fail, err:%w", err)

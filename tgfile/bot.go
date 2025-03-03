@@ -1,4 +1,4 @@
-package bot
+package tgfile
 
 import (
 	"bytes"
@@ -6,13 +6,11 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"encoding/hex"
-	"fileserver/core"
 	"fileserver/proto/fileserver/fileinfo"
 	"fileserver/utils"
 	"fmt"
 	"hash/fnv"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -64,10 +62,11 @@ func New(opts ...Option) (*TGBot, error) {
 	if err := bt.ensureUploadFolderExist(); err != nil {
 		return nil, fmt.Errorf("check upload folder exist fail, err:%w", err)
 	}
-	core.AddCleanTask(&core.CleanEntry{
-		Dir:  bt.tmpDir(),
-		Keep: defaultTmpUploadCtxKeepTime,
-	})
+	//TODO: refactor ir
+	// core.AddCleanTask(&core.CleanEntry{
+	// 	Dir:  bt.tmpDir(),
+	// 	Keep: defaultTmpUploadCtxKeepTime,
+	// })
 	return bt, nil
 }
 
@@ -108,7 +107,7 @@ func (c *TGBot) MaxFileSize() int64 {
 }
 
 func (c *TGBot) StType() uint8 {
-	return core.StTypeTGBot
+	return 2 //TODO: refactor it
 }
 
 func (c *TGBot) uploadOne(ctx context.Context, r io.Reader, sz int64) (string, string, error) {
@@ -131,7 +130,7 @@ func (c *TGBot) uploadOne(ctx context.Context, r io.Reader, sz int64) (string, s
 	return msg.Document.FileID, hex.EncodeToString(mReader.GetSum()), nil
 }
 
-func (c *TGBot) singleFileUpload(ctx context.Context, uctx *core.FileUploadRequest) (string, string, error) {
+func (c *TGBot) singleFileUpload(ctx context.Context, uctx *FileUploadRequest) (string, string, error) {
 	fileid, ck, err := c.uploadOne(ctx, uctx.ReadSeeker, uctx.Size)
 	if err != nil {
 		return "", "", fmt.Errorf("upload one part fail, err:%w", err)
@@ -142,7 +141,7 @@ func (c *TGBot) singleFileUpload(ctx context.Context, uctx *core.FileUploadReque
 	return fileid, ck, nil
 }
 
-func (c *TGBot) multipartFileUpload(ctx context.Context, uctx *core.FileUploadRequest) (string, string, error) {
+func (c *TGBot) multipartFileUpload(ctx context.Context, uctx *FileUploadRequest) (string, string, error) {
 	blkcount := utils.CalcFileBlockCount(uint64(uctx.Size), uint64(c.BlockSize()))
 	blklist := make([]string, 0, blkcount)
 	md5reader := MD5Reader(uctx.ReadSeeker)
@@ -169,7 +168,7 @@ func (c *TGBot) multipartFileUpload(ctx context.Context, uctx *core.FileUploadRe
 	return fid, ck, nil
 }
 
-func (c *TGBot) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*core.FileUploadResponse, error) {
+func (c *TGBot) FileUpload(ctx context.Context, uctx *FileUploadRequest) (*FileUploadResponse, error) {
 	var (
 		uploader       = c.singleFileUpload
 		filetype int32 = int32(fileinfo.BotConstants_BOT_FILE_TYPE_SINGLE)
@@ -191,7 +190,7 @@ func (c *TGBot) FileUpload(ctx context.Context, uctx *core.FileUploadRequest) (*
 	if err != nil {
 		return nil, fmt.Errorf("encode bot extra fail, err:%w", err)
 	}
-	return &core.FileUploadResponse{
+	return &FileUploadResponse{
 		Key:      fileid,
 		Extra:    extra,
 		CheckSum: cksum,
@@ -211,7 +210,7 @@ func (c *TGBot) getMultiblockMeta(ctx context.Context, fid string) (*fileinfo.Bo
 		return nil, fmt.Errorf("get download meta fail, err:%w", err)
 	}
 	defer r.Close()
-	raw, err := ioutil.ReadAll(r)
+	raw, err := io.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("read meta data fail, err:%w", err)
 	}
@@ -224,7 +223,7 @@ func (c *TGBot) getMultiblockMeta(ctx context.Context, fid string) (*fileinfo.Bo
 	return finfo, nil
 }
 
-func (c *TGBot) multipartFileDownload(ctx context.Context, fctx *core.FileDownloadRequest) (io.ReadCloser, error) {
+func (c *TGBot) multipartFileDownload(ctx context.Context, fctx *FileDownloadRequest) (io.ReadCloser, error) {
 	finfo, err := c.getMultiblockMeta(ctx, fctx.Key)
 	if err != nil {
 		return nil, fmt.Errorf("get meta fail, err:%w", err)
@@ -237,7 +236,7 @@ func (c *TGBot) multipartFileDownload(ctx context.Context, fctx *core.FileDownlo
 	}), nil
 }
 
-func (c *TGBot) FileDownload(ctx context.Context, fctx *core.FileDownloadRequest) (*core.FileDownloadResponse, error) {
+func (c *TGBot) FileDownload(ctx context.Context, fctx *FileDownloadRequest) (*FileDownloadResponse, error) {
 	bctx, err := utils.DecodeBotFileExtra(fctx.Extra)
 	if err != nil {
 		return nil, fmt.Errorf("decode bot file context fail, err:%w", err)
@@ -257,7 +256,7 @@ func (c *TGBot) FileDownload(ctx context.Context, fctx *core.FileDownloadRequest
 	if err != nil {
 		return nil, fmt.Errorf("get file reader fail, err:%w", err)
 	}
-	return &core.FileDownloadResponse{Reader: r}, nil
+	return &FileDownloadResponse{Reader: r}, nil
 }
 
 func (c *TGBot) tmpDir() string {
@@ -284,7 +283,7 @@ func (c *TGBot) ensureExist(file string) error {
 	return err
 }
 
-func (c *TGBot) BeginFileUpload(ctx context.Context, fctx *core.BeginFileUploadRequest) (*core.BeginFileUploadResponse, error) {
+func (c *TGBot) BeginFileUpload(ctx context.Context, fctx *BeginFileUploadRequest) (*BeginFileUploadResponse, error) {
 	xfid := uuid.NewString()
 	if err := c.ensureUploadFolderExist(); err != nil {
 		return nil, fmt.Errorf("make dir fail, err:%w", err)
@@ -297,7 +296,7 @@ func (c *TGBot) BeginFileUpload(ctx context.Context, fctx *core.BeginFileUploadR
 	if err != nil {
 		return nil, err
 	}
-	return &core.BeginFileUploadResponse{UploadID: upid}, nil
+	return &BeginFileUploadResponse{UploadID: upid}, nil
 }
 
 func (c *TGBot) storePartInfo(ctxFile string, partid int, partkey string, partsize int64, ck string) error {
@@ -333,7 +332,7 @@ func (c *TGBot) buildContextFile(filekey string) string {
 	return fmt.Sprintf("%s%s%s", c.tmpDir(), string(filepath.Separator), enc)
 }
 
-func (c *TGBot) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadRequest) (*core.PartFileUploadResponse, error) {
+func (c *TGBot) PartFileUpload(ctx context.Context, pctx *PartFileUploadRequest) (*PartFileUploadResponse, error) {
 	uctx, err := utils.DecodeUploadID(pctx.UploadId)
 	if err != nil {
 		return nil, err
@@ -364,11 +363,11 @@ func (c *TGBot) PartFileUpload(ctx context.Context, pctx *core.PartFileUploadReq
 	if err := c.storePartInfo(ctxFile, int(pctx.PartId), fileid, pctx.Size, ck); err != nil {
 		return nil, fmt.Errorf("store partinfo to disk fail, err:%w", err)
 	}
-	return &core.PartFileUploadResponse{}, nil
+	return &PartFileUploadResponse{}, nil
 }
 
 func (c *TGBot) readStorePartInfo(ctxFile string) ([]*fileinfo.PartPair, error) {
-	data, err := ioutil.ReadFile(ctxFile)
+	data, err := os.ReadFile(ctxFile)
 	if err != nil {
 		return nil, fmt.Errorf("read part info fail, err:%w", err)
 	}
@@ -399,7 +398,7 @@ func (c *TGBot) readStorePartInfo(ctxFile string) ([]*fileinfo.PartPair, error) 
 	return rs, nil
 }
 
-func (c *TGBot) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUploadRequest) (*core.FinishFileUploadResponse, error) {
+func (c *TGBot) FinishFileUpload(ctx context.Context, fctx *FinishFileUploadRequest) (*FinishFileUploadResponse, error) {
 	uctx, err := utils.DecodeUploadID(fctx.UploadId)
 	if err != nil {
 		return nil, err
@@ -447,7 +446,7 @@ func (c *TGBot) FinishFileUpload(ctx context.Context, fctx *core.FinishFileUploa
 	}
 	_ = os.Remove(ctxFile)
 
-	return &core.FinishFileUploadResponse{
+	return &FinishFileUploadResponse{
 		Key:      filekey,
 		Extra:    extra,
 		FileSize: int64(uctx.GetFileSize()),

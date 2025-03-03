@@ -2,11 +2,11 @@ package s3
 
 import (
 	"bytes"
-	"fileserver/core"
 	"fileserver/dao"
 	"fileserver/handler/common"
 	"fileserver/handler/s3base"
 	"fileserver/model"
+	"fileserver/tgfile"
 	"fileserver/utils"
 	"fmt"
 	"io"
@@ -22,9 +22,8 @@ import (
 
 func bigFileUpload(ctx *gin.Context) (uint64, string, error) {
 	length := ctx.Request.ContentLength
-	fs := core.GetFsCore()
 	//生成uploadid
-	beginRsp, err := fs.BeginFileUpload(ctx, &core.BeginFileUploadRequest{
+	beginRsp, err := tgfile.BeginFileUpload(ctx, &tgfile.BeginFileUploadRequest{
 		FileSize: length,
 	})
 	if err != nil {
@@ -34,17 +33,17 @@ func bigFileUpload(ctx *gin.Context) (uint64, string, error) {
 	uploadid := beginRsp.UploadID
 
 	//分批上传
-	blkcnt := utils.CalcFileBlockCount(uint64(length), uint64(fs.BlockSize()))
+	blkcnt := utils.CalcFileBlockCount(uint64(length), uint64(tgfile.BlockSize()))
 	for i := 0; i < blkcnt; i++ {
 		partid := i + 1
-		r := io.LimitReader(file, fs.BlockSize())
+		r := io.LimitReader(file, tgfile.BlockSize())
 		raw, err := io.ReadAll(r)
 		if err != nil {
 			return 0, "", fmt.Errorf("read io data fail, err:%w", err)
 		}
 		md5v := utils.GetMd5(raw)
 
-		_, err = fs.PartFileUpload(ctx, &core.PartFileUploadRequest{
+		_, err = tgfile.PartFileUpload(ctx, &tgfile.PartFileUploadRequest{
 			ReadSeeker: bytes.NewReader(raw),
 			UploadId:   uploadid,
 			PartId:     uint64(partid),
@@ -58,7 +57,7 @@ func bigFileUpload(ctx *gin.Context) (uint64, string, error) {
 	obj, _ := s3base.GetS3Object(ctx)
 	name := path.Base(obj)
 	//完成上传
-	rsp, err := fs.FinishFileUpload(ctx, &core.FinishFileUploadRequest{
+	rsp, err := tgfile.FinishFileUpload(ctx, &tgfile.FinishFileUploadRequest{
 		UploadId: uploadid,
 		FileName: name,
 	})
@@ -76,7 +75,7 @@ func bigFileUpload(ctx *gin.Context) (uint64, string, error) {
 			FileKey:    rsp.Key,
 			Extra:      rsp.Extra,
 			DownKey:    fileid,
-			StType:     fs.StType(),
+			StType:     tgfile.StType(),
 		},
 	})
 	if err != nil {
@@ -119,7 +118,7 @@ func smallFileUpload(ctx *gin.Context) (uint64, string, error) {
 func Upload(ctx *gin.Context) {
 	caller := smallFileUpload
 	length := ctx.Request.ContentLength
-	if length > core.GetFsCore().BlockSize() {
+	if length > tgfile.BlockSize() {
 		caller = bigFileUpload
 	}
 	fileid, checksum, err := caller(ctx)
