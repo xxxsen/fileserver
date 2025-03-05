@@ -2,7 +2,7 @@ package telegram
 
 import (
 	"context"
-	"fileserver/filesystem"
+	"fileserver/blockio"
 	"fmt"
 	"io"
 	"net"
@@ -29,14 +29,14 @@ var defaultHTTPClient = &http.Client{
 	},
 }
 
-type telegramFileSystem struct {
+type tgBlockIO struct {
 	chatid    int64
 	token     string
 	bot       *tgbotapi.BotAPI
 	linkCache *lru.Cache
 }
 
-func New(chatid int64, token string) (filesystem.IFileSystem, error) {
+func New(chatid int64, token string) (blockio.IBlockIO, error) {
 	cache, err := lru.New(1000)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func New(chatid int64, token string) (filesystem.IFileSystem, error) {
 	if err != nil {
 		return nil, fmt.Errorf("init bot fail, err:%w", err)
 	}
-	return &telegramFileSystem{
+	return &tgBlockIO{
 		chatid:    chatid,
 		token:     token,
 		bot:       bot,
@@ -53,11 +53,11 @@ func New(chatid int64, token string) (filesystem.IFileSystem, error) {
 	}, nil
 }
 
-func (t *telegramFileSystem) MaxFileSize() int64 {
+func (t *tgBlockIO) MaxFileSize() int64 {
 	return defaultMaxFileSize
 }
 
-func (t *telegramFileSystem) Upload(ctx context.Context, r io.Reader) (string, error) {
+func (t *tgBlockIO) Upload(ctx context.Context, r io.Reader) (string, error) {
 	sname := uuid.NewString()
 	freader := tgbotapi.FileReader{
 		Name:   sname,
@@ -73,7 +73,7 @@ func (t *telegramFileSystem) Upload(ctx context.Context, r io.Reader) (string, e
 	return msg.Document.FileID, nil
 }
 
-func (t *telegramFileSystem) cacheGetDownloadLink(filekey string) (string, error) {
+func (t *tgBlockIO) cacheGetDownloadLink(filekey string) (string, error) {
 	if lnk, ok := t.linkCache.Get(filekey); ok {
 		return lnk.(string), nil
 	}
@@ -88,7 +88,7 @@ func (t *telegramFileSystem) cacheGetDownloadLink(filekey string) (string, error
 	return lnk, nil
 }
 
-func (t *telegramFileSystem) Download(ctx context.Context, filekey string, pos int64) (io.ReadCloser, error) {
+func (t *tgBlockIO) Download(ctx context.Context, filekey string, pos int64) (io.ReadCloser, error) {
 	link, err := t.cacheGetDownloadLink(filekey)
 	if err != nil {
 		return nil, err

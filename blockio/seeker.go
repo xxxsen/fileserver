@@ -1,4 +1,4 @@
-package filesystem
+package blockio
 
 import (
 	"context"
@@ -32,7 +32,7 @@ var defaultFakeReader = &fakeReader{}
 
 type defaultSeeker struct {
 	ctx    context.Context
-	fs     IFileSystem
+	fs     IBlockIO
 	b2f    BlockIdToFileKeyConvertFunc
 	fsize  int64
 	cur    int64 //for recording current read pos

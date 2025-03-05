@@ -1,33 +1,32 @@
-package stream
+package filemgr
 
 import (
 	"context"
 	"fileserver/blockio"
-	"fileserver/proxyutil"
 	"fileserver/service"
 	"fileserver/utils"
 	"fmt"
 	"io"
-	"net/http"
-	"strconv"
-	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
-type OnUploadSuccCallback func(ctx context.Context, fileid uint64) error
+type IFileManager interface {
+	Open(ctx context.Context, fileid uint64, pos int64) (io.ReadSeekCloser, error)
+	Create(ctx context.Context, name string, size int64, r io.Reader) (uint64, error)
+}
 
-func ServeDownload(c *gin.Context, ctx context.Context, fileid uint64) {
+type defaultFileManager struct {
+	bkio blockio.IBlockIO
+}
+
+func (d *defaultFileManager) Open(ctx context.Context, fileid uint64, pos int64) (io.ReadSeekCloser, error) {
 	finfo, ok, err := service.FileService.GetFileInfo(ctx, fileid)
 	if err != nil {
-		proxyutil.Fail(c, http.StatusInternalServerError, fmt.Errorf("read file info failed, err:%w", err))
-		return
+		return nil, err
 	}
 	if !ok {
-		proxyutil.Fail(c, http.StatusNotFound, fmt.Errorf("file not found"))
-		return
+		return nil, fmt.Errorf("file not found")
 	}
-	sk := blockio.NewSeeker(ctx, func(ctx context.Context, blkid int32) (string, error) {
+	rsc := newReadSeekCloser(ctx, d.bkio, func(ctx context.Context, blkid int32) (string, error) {
 		pinfo, ok, err := service.FileService.GetFilePartInfo(ctx, fileid, blkid)
 		if err != nil {
 			return "", fmt.Errorf("read file part info failed, err:%w", err)
@@ -37,13 +36,12 @@ func ServeDownload(c *gin.Context, ctx context.Context, fileid uint64) {
 		}
 		return pinfo.FileKey, nil
 	}, finfo.FileSize)
-	defer sk.Close()
-	http.ServeContent(c.Writer, c.Request, strconv.Quote(finfo.FileName), time.Unix(int64(finfo.Ctime), 0), sk)
+	return rsc, nil
 }
 
-func ServeUpload(c *gin.Context, ctx context.Context, reader io.Reader, filename string, fsize int64) (uint64, error) {
-	blkcnt := utils.CalcFileBlockCount(uint64(fsize), uint64(blockio.MaxFileSize()))
-	fileid, err := service.FileService.CreateFileDraft(ctx, filename, fsize, int32(blkcnt))
+func (d *defaultFileManager) Create(ctx context.Context, filename string, size int64, reader io.Reader) (uint64, error) {
+	blkcnt := utils.CalcFileBlockCount(uint64(size), uint64(blockio.MaxFileSize()))
+	fileid, err := service.FileService.CreateFileDraft(ctx, filename, size, int32(blkcnt))
 	if err != nil {
 		return 0, fmt.Errorf("create file draft failed, err:%w", err)
 	}
@@ -62,4 +60,10 @@ func ServeUpload(c *gin.Context, ctx context.Context, reader io.Reader, filename
 		return 0, fmt.Errorf("finish create file failed, err:%w", err)
 	}
 	return fileid, nil
+}
+
+func NewFileManager(bkio blockio.IBlockIO) IFileManager {
+	return &defaultFileManager{
+		bkio: bkio,
+	}
 }
