@@ -2,10 +2,8 @@ package service
 
 import (
 	"context"
-	"fileserver/constant"
 	"fileserver/dao"
 	"fileserver/entity"
-	"fmt"
 )
 
 var FileService = newFileService()
@@ -41,23 +39,6 @@ func (s *fileService) CreateFilePart(ctx context.Context, fileid uint64, pidx in
 }
 
 func (s *fileService) FinishCreateFile(ctx context.Context, fileid uint64) error {
-	info, ok, err := s.GetFileInfo(ctx, fileid)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return fmt.Errorf("fileid:%d not found", fileid)
-	}
-	if info.FileState != constant.FileStateInit {
-		return fmt.Errorf("file not in init state")
-	}
-	partCount, err := s.GetFilePartCount(ctx, fileid)
-	if err != nil {
-		return fmt.Errorf("read file part count failed, err:%w", err)
-	}
-	if partCount != info.FilePartCount {
-		return fmt.Errorf("file part count not match, db count:%d, acquire count:%d", partCount, info.FilePartCount)
-	}
 	if _, err := dao.FileDao.MarkFileReady(ctx, &entity.MarkFileReadyRequest{
 		FileID: fileid,
 	}); err != nil {

@@ -32,13 +32,12 @@ func New(bind string, opts ...Option) (*Server, error) {
 
 func (s *Server) init() error {
 	s.engine = gin.New()
-	s.initBasicMiddleware(s.engine)
-	s.initBasicAPI(s.engine)
-	s.initS3API(s.engine)
+	s.initMiddleware(s.engine)
+	s.initAPI(s.engine)
 	return nil
 }
 
-func (s *Server) initBasicMiddleware(router *gin.Engine) {
+func (s *Server) initMiddleware(router *gin.Engine) {
 	mds := []gin.HandlerFunc{
 		middleware.PanicRecoverMiddleware(),
 		middleware.TraceMiddleware(),
@@ -47,11 +46,12 @@ func (s *Server) initBasicMiddleware(router *gin.Engine) {
 	router.Use(mds...)
 }
 
-func (s *Server) initBasicAPI(router *gin.Engine) {
+func (s *Server) initAPI(router *gin.Engine) {
 	authMiddleware := middleware.CommonAuth(s.c.userMap)
-	router.POST("/upload/file", authMiddleware, proxyutil.WrapBizFunc(file.FileUpload, &model.UploadFileRequest{}))
-	router.GET("/file", proxyutil.WrapBizFunc(file.FileDownload, &model.DownloadFileRequest{}))
-	router.POST("/file/meta", proxyutil.WrapBizFunc(file.GetMetaInfo, &model.GetFileInfoRequest{}))
+	fileRouter := router.Group("/file")
+	fileRouter.POST("/upload", authMiddleware, proxyutil.WrapBizFunc(file.FileUpload, &model.UploadFileRequest{}))
+	fileRouter.POST("/download", proxyutil.WrapBizFunc(file.FileDownload, &model.DownloadFileRequest{}))
+	fileRouter.POST("/meta", proxyutil.WrapBizFunc(file.GetMetaInfo, &model.GetFileInfoRequest{}))
 	for _, bk := range s.c.s3Buckets {
 		bucketPath := fmt.Sprintf("/%s", bk)
 		routerPath := fmt.Sprintf("%s/*s3Param", bucketPath)
@@ -60,11 +60,6 @@ func (s *Server) initBasicAPI(router *gin.Engine) {
 		router.PUT(routerPath, authMiddleware, middleware.ExtractS3InfoMiddleware(), s3.UploadObject)
 	}
 }
-
-func (s *Server) initS3API(router *gin.Engine) {
-
-}
-
 func (s *Server) Run() error {
 	return s.engine.Run(s.addr)
 }

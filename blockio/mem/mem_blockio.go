@@ -12,11 +12,12 @@ import (
 )
 
 type memBlockIO struct {
-	m sync.Map
+	bksize int64
+	m      sync.Map
 }
 
 func (m *memBlockIO) MaxFileSize() int64 {
-	return 4 * 1024
+	return m.bksize
 }
 
 func (m *memBlockIO) Upload(ctx context.Context, r io.Reader) (string, error) {
@@ -41,6 +42,9 @@ func (m *memBlockIO) Download(ctx context.Context, filekey string, pos int64) (i
 	return io.NopCloser(bytes.NewReader(data[pos:])), nil
 }
 
-func New() blockio.IBlockIO {
-	return &memBlockIO{}
+func New(bksize int64) blockio.IBlockIO {
+	if bksize == 0 {
+		bksize = 4 * 1024
+	}
+	return &memBlockIO{bksize: bksize}
 }

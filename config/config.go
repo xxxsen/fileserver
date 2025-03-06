@@ -22,6 +22,11 @@ type BotConfig struct {
 	Token  string `json:"token"`
 }
 
+type DebugConfig struct {
+	Enable       bool  `json:"enable"`
+	MemBlockSize int64 `json:"mem_block_size"`
+}
+
 type Config struct {
 	LogInfo    logger.LogConfig  `json:"log_info"`
 	DBFile     string            `json:"db_file"`
@@ -30,7 +35,7 @@ type Config struct {
 	AuthInfo   map[string]string `json:"auth_info"`
 	S3Bucket   []string          `json:"s3_bucket"`
 	TempDir    string            `json:"temp_dir"`
-	DebugMode  bool              `json:"debug_mode"`
+	DebugMode  DebugConfig       `json:"debug_mode"`
 }
 
 func Parse(f string) (*Config, error) {
