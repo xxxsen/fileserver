@@ -10,131 +10,101 @@ import (
 // BlockIdToFileKeyConvertFunc 实现blockid到文件key的转换, 之后seeker会使用filesystem再去获取文件流
 type BlockIdToFileKeyConvertFunc func(ctx context.Context, blkid int32) (string, error)
 
-// fakeReader 由于底层的reader并不是真的可以seek,
-// 很多场景下, seek_end只是为了获取文件大小, 所以, 我们可以产生一个假的seeker
-type fakeReader struct {
-}
-
-func (f *fakeReader) Read([]byte) (int, error) {
-	return 0, io.EOF
-}
-
-func (f *fakeReader) Close() error {
-	return nil
-}
-
-var defaultFakeReader = &fakeReader{}
-
-type defaultReadSeekCloser struct {
+type defaultFsIO struct {
 	ctx    context.Context
-	fs     blockio.IBlockIO
+	bkio   blockio.IBlockIO
 	b2f    BlockIdToFileKeyConvertFunc
 	fsize  int64
-	cur    int64 //for recording current read pos
 	isOpen bool
-	rc     io.ReadCloser
+	//
+	cursor    int64
+	tmpReader io.ReadCloser
 }
 
-func newReadSeekCloser(ctx context.Context, bkio blockio.IBlockIO, b2f BlockIdToFileKeyConvertFunc, fsize int64) io.ReadSeekCloser {
-	return &defaultReadSeekCloser{
+func newFsIO(ctx context.Context, bkio blockio.IBlockIO, b2f BlockIdToFileKeyConvertFunc, fsize int64) io.ReadSeekCloser {
+	return &defaultFsIO{
 		ctx:    ctx,
-		fs:     bkio,
+		bkio:   bkio,
 		b2f:    b2f,
 		fsize:  fsize,
-		cur:    0,
 		isOpen: true,
 	}
 }
 
-func (s *defaultReadSeekCloser) openStream(at int64) (io.ReadCloser, error) {
-	if at == s.fsize {
-		return defaultFakeReader, nil
-	}
-	//计算出在哪个块
-	//计算出在块内的位置
-	blkid := at / s.fs.MaxFileSize()
-	pos := at % s.fs.MaxFileSize()
-	filekey, err := s.b2f(s.ctx, int32(blkid))
-	if err != nil {
-		return nil, fmt.Errorf("unable to convert blockid:%d to fileid, err:%w", blkid, err)
-	}
-	stream, err := s.fs.Download(s.ctx, filekey, pos)
-	if err != nil {
-		return nil, err
-	}
-	return stream, nil
-}
-
-func (s *defaultReadSeekCloser) Seek(offset int64, whence int) (ret int64, err error) {
-	if !s.isOpen {
-		return 0, fmt.Errorf("file not in open state")
-	}
-	if s.rc != nil {
-		_ = s.rc.Close()
-	}
-	cur := s.calcOffset(offset, whence)
-	if cur < 0 {
-		return 0, fmt.Errorf("invalid offset, cur:%d", cur)
-	}
-	if cur > s.fsize {
-		return s.fsize, fmt.Errorf("seek over file size, cur:%d, fsz:%d", cur, s.fsize)
-	}
-	if cur == 0 { //对于cur == 0的, 延迟到Read的时候才打开流。
-		s.rc = nil
-		s.cur = 0
-		return 0, nil
-	}
-	rc, err := s.openStream(cur)
-	if err != nil {
-		return 0, fmt.Errorf("open stream fail, err:%w", err)
-	}
-	s.rc = rc
-	s.cur = cur
-	return cur, nil
-}
-
-func (s *defaultReadSeekCloser) calcOffset(offset int64, whence int) int64 {
-	cur := int64(s.cur)
+func (f *defaultFsIO) calcOffset(offset int64, whence int) int64 {
+	cur := int64(f.cursor)
 	switch whence {
 	case io.SeekStart:
 		cur = offset
 	case io.SeekCurrent:
 		cur += offset
 	case io.SeekEnd:
-		cur = s.fsize + offset
+		cur = f.fsize + offset
 	}
 	return cur
 }
 
-func (s *defaultReadSeekCloser) Close() error {
-	if !s.isOpen {
-		return nil
-	}
-	if s.rc == nil {
-		return nil
-	}
-	s.isOpen = false
-	return s.rc.Close()
-}
-
-func (s *defaultReadSeekCloser) Read(b []byte) (int, error) {
-	if !s.isOpen {
+func (f *defaultFsIO) Seek(offset int64, whence int) (int64, error) {
+	if !f.isOpen {
 		return 0, fmt.Errorf("file not in open state")
 	}
-	if s.rc == nil {
-		rc, err := s.openStream(s.cur)
+	if f.tmpReader != nil {
+		_ = f.tmpReader.Close()
+		f.tmpReader = nil
+	}
+	cur := f.calcOffset(offset, whence)
+	if cur < 0 {
+		return 0, fmt.Errorf("invalid offset, cur:%d", cur)
+	}
+	if cur > f.fsize {
+		return f.fsize, fmt.Errorf("seek over file size, cur:%d, fsz:%d", cur, f.fsize)
+	}
+	f.cursor = cur
+	return cur, nil
+}
+
+func (f *defaultFsIO) Read(b []byte) (int, error) {
+	if !f.isOpen {
+		return 0, fmt.Errorf("file not in open state")
+	}
+	if f.tmpReader == nil {
+		//如果cursor已经到了文件末尾, 那么直接返回EOF
+		if f.cursor == f.fsize {
+			return 0, io.EOF
+		}
+		//重新计算当前的位置
+		blkid := f.cursor / f.bkio.MaxFileSize()
+		pos := f.cursor % f.bkio.MaxFileSize()
+		filekey, err := f.b2f(f.ctx, int32(blkid))
+		if err != nil {
+			return 0, fmt.Errorf("unable to convert blockid:%d to fileid, err:%w", blkid, err)
+		}
+		rc, err := f.bkio.Download(f.ctx, filekey, pos)
 		if err != nil {
 			return 0, fmt.Errorf("open stream fail, err:%w", err)
 		}
-		s.rc = rc
+		f.tmpReader = rc
 	}
-	//fixme: 一个异常case, 如果一次性把整个block都读完了, 那么此时再进行读取会直接eof然后就结束了, 需要处理这种情况, 让流可以顺序读下去直至读完整个文件
-	cnt, err := s.rc.Read(b)
-	if cnt > 0 {
-		s.cur += int64(cnt)
+	n, err := f.tmpReader.Read(b)
+	if err != nil && err != io.EOF {
+		return 0, err
 	}
-	if err != nil {
-		return cnt, err
+	if n > 0 {
+		f.cursor += int64(n)
 	}
-	return cnt, nil
+	if err == io.EOF {
+		_ = f.tmpReader.Close()
+		f.tmpReader = nil
+	}
+	return n, nil
+}
+
+func (f *defaultFsIO) Close() error {
+	var err error
+	if f.tmpReader != nil {
+		err = f.tmpReader.Close()
+		f.tmpReader = nil
+	}
+	f.isOpen = false
+	return err
 }
