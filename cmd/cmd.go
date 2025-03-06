@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "fileserver/auth"
+	"fileserver/blockio/mem"
 	"fileserver/blockio/telegram"
 	"fileserver/config"
 	"fileserver/db"
@@ -50,9 +51,13 @@ func main() {
 }
 
 func initStorage(c *config.Config) error {
-	bkio, err := telegram.New(int64(c.BotInfo.Chatid), c.BotInfo.Token)
-	if err != nil {
-		return err
+	bkio := mem.New()
+	if !c.DebugMode {
+		tgio, err := telegram.New(int64(c.BotInfo.Chatid), c.BotInfo.Token)
+		if err != nil {
+			return err
+		}
+		bkio = tgio
 	}
 	fmgr := filemgr.NewFileManager(bkio)
 	filemgr.SetFileManagerImpl(fmgr)

@@ -35,12 +35,16 @@ var initList = []initSql{
 		name: "create_file_part_tab",
 		sql: `CREATE TABLE IF NOT EXISTS tg_file_part_tab (
     id INTEGER PRIMARY KEY AUTOINCREMENT,  -- 自增 ID
-    file_id INTEGER UNIQUE NOT NULL,       -- 文件 ID(64 位整数)，唯一键
+    file_id INTEGER NOT NULL,       -- 文件 ID(64 位整数)，唯一键
     file_key TEXT NOT NULL,                -- 文件 Key
     file_part_id INTEGER NOT NULL,         -- 文件分片 ID
     ctime INTEGER NOT NULL,                -- 创建时间（存 UNIX 时间戳）
     mtime INTEGER NOT NULL                 -- 修改时间（存 UNIX 时间戳）
 );`,
+	},
+	{
+		name: "create_file_part_tab_index",
+		sql:  `CREATE INDEX IF NOT EXISTS idx_fileid_filepartid ON tg_file_part_tab (file_id, file_part_id);`,
 	},
 	{
 		name: "create_file_mapping_tab",

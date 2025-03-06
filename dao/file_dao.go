@@ -11,6 +11,8 @@ import (
 	"github.com/didi/gendry/builder"
 	"github.com/xxxsen/common/database/dbkit"
 	"github.com/xxxsen/common/idgen"
+	"github.com/xxxsen/common/logutil"
+	"go.uber.org/zap"
 )
 
 var FileDao IFileDao = NewFileDao()
@@ -33,6 +35,7 @@ func (f *fileDaoImpl) table() string {
 
 func (f *fileDaoImpl) CreateFileDraft(ctx context.Context, req *entity.CreateFileDraftRequest) (*entity.CreateFileDraftResponse, error) {
 	fileid := idgen.NextId()
+	logutil.GetLogger(ctx).Debug("create file part", zap.Uint64("fileid", fileid), zap.Int64("size", req.FileSize), zap.String("name", req.FileName))
 	now := time.Now().UnixMilli()
 	data := []map[string]interface{}{
 		{

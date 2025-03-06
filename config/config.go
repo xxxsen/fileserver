@@ -30,6 +30,7 @@ type Config struct {
 	AuthInfo   map[string]string `json:"auth_info"`
 	S3Bucket   []string          `json:"s3_bucket"`
 	TempDir    string            `json:"temp_dir"`
+	DebugMode  bool              `json:"debug_mode"`
 }
 
 func Parse(f string) (*Config, error) {

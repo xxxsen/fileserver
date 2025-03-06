@@ -128,7 +128,7 @@ func (s *defaultReadSeekCloser) Read(b []byte) (int, error) {
 		}
 		s.rc = rc
 	}
-
+	//fixme: 一个异常case, 如果一次性把整个block都读完了, 那么此时再进行读取会直接eof然后就结束了, 需要处理这种情况, 让流可以顺序读下去直至读完整个文件
 	cnt, err := s.rc.Read(b)
 	if cnt > 0 {
 		s.cur += int64(cnt)
