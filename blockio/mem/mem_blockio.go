@@ -33,7 +33,7 @@ func (m *memBlockIO) Upload(ctx context.Context, r io.Reader) (string, error) {
 func (m *memBlockIO) Download(ctx context.Context, filekey string, pos int64) (io.ReadCloser, error) {
 	raw, ok := m.m.Load(filekey)
 	if !ok {
-		return nil, fmt.Errorf("key not found")
+		return nil, fmt.Errorf("key:%s not found", filekey)
 	}
 	data := raw.([]byte)
 	if pos > int64(len(data)) {

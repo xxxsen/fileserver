@@ -27,6 +27,6 @@ func FileUpload(c *gin.Context, ctx context.Context, request interface{}) {
 		return
 	}
 	proxyutil.Success(c, &model.UploadFileResponse{
-		DownKey: utils.EncodeFileId(fileid),
+		Key: utils.EncodeFileId(fileid),
 	})
 }

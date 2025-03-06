@@ -3,7 +3,7 @@ package model
 import "mime/multipart"
 
 type DownloadFileRequest struct {
-	DownKey string `form:"down_key" binding:"required"`
+	Key string `form:"key" binding:"required"`
 }
 
 type UploadFileRequest struct {
@@ -11,15 +11,16 @@ type UploadFileRequest struct {
 }
 
 type UploadFileResponse struct {
-	DownKey string `json:"down_key"`
+	Key string `json:"key"`
 }
 
 type GetFileInfoRequest struct {
-	DownKey []string `json:"down_key"`
+	Key string `form:"key"  binding:"required"`
 }
 
 type GetFileInfoItem struct {
-	DownKey       string `json:"down_key"`
+	Key           string `json:"key"`
+	Exist         bool   `json:"exist"`
 	FileName      string `json:"file_name"`
 	FileSize      int64  `json:"file_size"`
 	Ctime         int64  `json:"ctime"`
@@ -28,5 +29,5 @@ type GetFileInfoItem struct {
 }
 
 type GetFileInfoResponse struct {
-	List []*GetFileInfoItem `json:"list"`
+	Item *GetFileInfoItem `json:"item"`
 }
