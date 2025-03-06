@@ -32,12 +32,22 @@ func New(bind string, opts ...Option) (*Server, error) {
 
 func (s *Server) init() error {
 	s.engine = gin.New()
-	s.initBasic(s.engine)
-	s.initS3(s.engine)
+	s.initBasicMiddleware(s.engine)
+	s.initBasicAPI(s.engine)
+	s.initS3API(s.engine)
 	return nil
 }
 
-func (s *Server) initBasic(router *gin.Engine) {
+func (s *Server) initBasicMiddleware(router *gin.Engine) {
+	mds := []gin.HandlerFunc{
+		middleware.PanicRecoverMiddleware(),
+		middleware.TraceMiddleware(),
+		middleware.LogRequestMiddleware(),
+	}
+	router.Use(mds...)
+}
+
+func (s *Server) initBasicAPI(router *gin.Engine) {
 	authMiddleware := middleware.CommonAuth(s.c.userMap)
 	router.POST("/upload/file", authMiddleware, proxyutil.WrapBizFunc(file.FileUpload, &model.UploadFileRequest{}))
 	router.GET("/file", proxyutil.WrapBizFunc(file.FileDownload, &model.DownloadFileRequest{}))
@@ -51,7 +61,7 @@ func (s *Server) initBasic(router *gin.Engine) {
 	}
 }
 
-func (s *Server) initS3(router *gin.Engine) {
+func (s *Server) initS3API(router *gin.Engine) {
 
 }
 
