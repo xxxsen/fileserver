@@ -2,23 +2,17 @@ package s3
 
 import (
 	"fileserver/filemgr"
-	"fileserver/proxyutil"
 	"fileserver/server/handler/s3/s3base"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 func DownloadObject(c *gin.Context) {
 	ctx := c.Request.Context()
-
-	sinfo, ok := proxyutil.GetS3Info(ctx)
-	if !ok {
-		s3base.WriteError(c, http.StatusBadRequest, fmt.Errorf("no s3 info found"))
-		return
-	}
-	filename := fmt.Sprintf("%s/%s", sinfo.Bucket, sinfo.Object)
+	filename := c.Request.URL.Path
 	fid, err := filemgr.ResolveLink(ctx, filename)
 	if err != nil {
 		s3base.WriteError(c, http.StatusInternalServerError, fmt.Errorf("get mapping info fail, err:%w", err))
@@ -35,18 +29,13 @@ func DownloadObject(c *gin.Context) {
 		return
 	}
 	defer file.Close()
+	c.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", strconv.Quote(finfo.Name())))
 	http.ServeContent(c.Writer, c.Request, finfo.Name(), finfo.ModTime(), file)
 }
 
 func UploadObject(c *gin.Context) {
 	ctx := c.Request.Context()
-
-	sinfo, ok := proxyutil.GetS3Info(ctx)
-	if !ok {
-		s3base.WriteError(c, http.StatusBadRequest, fmt.Errorf("no s3 info found"))
-		return
-	}
-	filename := fmt.Sprintf("%s/%s", sinfo.Bucket, sinfo.Object)
+	filename := c.Request.URL.Path
 	fileid, err := filemgr.Create(ctx, filename, c.Request.ContentLength, c.Request.Body)
 	if err != nil {
 		s3base.WriteError(c, http.StatusInternalServerError, fmt.Errorf("do file upload fail, err:%w", err))

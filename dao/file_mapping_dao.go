@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fileserver/db"
 	"fileserver/entity"
+	"fmt"
 	"time"
 
 	"github.com/didi/gendry/builder"
@@ -53,10 +54,11 @@ func (f *fileMappingDao) GetFileMapping(ctx context.Context, req *entity.GetFile
 
 func (f *fileMappingDao) CreateFileMapping(ctx context.Context, req *entity.CreateFileMappingRequest) (*entity.CreateFileMappingResponse, error) {
 	now := time.Now().UnixMilli()
+	fhash := f.name2hash(req.FileName)
 	data := []map[string]interface{}{
 		{
 			"file_name": req.FileName,
-			"file_hash": f.name2hash(req.FileName),
+			"file_hash": fhash,
 			"file_id":   req.FileId,
 			"ctime":     now,
 			"mtime":     now,
@@ -66,8 +68,32 @@ func (f *fileMappingDao) CreateFileMapping(ctx context.Context, req *entity.Crea
 	if err != nil {
 		return nil, err
 	}
-	if _, err := db.GetClient().ExecContext(ctx, sql, args...); err != nil {
+	_, insertErr := db.GetClient().ExecContext(ctx, sql, args...)
+	if insertErr == nil {
+		return &entity.CreateFileMappingResponse{}, nil
+	}
+	//尝试update
+	where := map[string]interface{}{
+		"file_hash": fhash,
+	}
+	update := map[string]interface{}{
+		"file_id": req.FileId,
+		"mtime":   now,
+	}
+	sql, args, err = builder.BuildUpdate(f.table(), where, update)
+	if err != nil {
 		return nil, err
+	}
+	rs, err := db.GetClient().ExecContext(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	affect, err := rs.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if affect == 0 {
+		return nil, fmt.Errorf("insert err and try update failed, insert err:%w", insertErr)
 	}
 	return &entity.CreateFileMappingResponse{}, nil
 }
