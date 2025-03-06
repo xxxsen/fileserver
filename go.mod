@@ -5,7 +5,6 @@ go 1.22
 require (
 	github.com/didi/gendry v1.8.2
 	github.com/gin-gonic/gin v1.9.1
-	github.com/go-playground/assert/v2 v2.2.0
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/google/uuid v1.5.0
 	github.com/hnlq715/golang-lru v0.3.0
