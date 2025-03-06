@@ -10,6 +10,10 @@ const (
 	defaultBizErrCode uint32 = 100000
 )
 
+var (
+	defaultReplyErrKey = "x-filemgr-reply-err"
+)
+
 type CommonResponse struct {
 	Code    uint32      `json:"code"`
 	Message string      `json:"message"`
@@ -38,5 +42,18 @@ func Fail(c *gin.Context, code int, err error) {
 	if ie, ok := err.(iCodeErr); ok {
 		bizCode = ie.Code()
 	}
+	markReplyErr(c, err)
 	c.AbortWithStatusJSON(code, makePacket(bizCode, errmsg, nil))
+}
+
+func markReplyErr(c *gin.Context, err error) {
+	c.Set(defaultReplyErrKey, err)
+}
+
+func GetReplyErrInfo(c *gin.Context) error {
+	v, ok := c.Get(defaultReplyErrKey)
+	if !ok {
+		return nil
+	}
+	return v.(error)
 }

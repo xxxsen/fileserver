@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fileserver/proxyutil"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,6 @@ func LogRequestMiddleware() gin.HandlerFunc {
 				zap.String("ip", ctx.ClientIP())).Info("request start")
 		ctx.Next()
 		cost := time.Since(start)
-		logutil.GetLogger(ctx.Request.Context()).Info("request finish", zap.Int("status_code", ctx.Writer.Status()), zap.Duration("cost", cost))
+		logutil.GetLogger(ctx.Request.Context()).Info("request finish", zap.Error(proxyutil.GetReplyErrInfo(ctx)), zap.Int("status_code", ctx.Writer.Status()), zap.Duration("cost", cost))
 	}
 }
