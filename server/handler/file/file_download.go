@@ -1,10 +1,8 @@
 package file
 
 import (
-	"context"
 	"fileserver/filemgr"
 	"fileserver/proxyutil"
-	"fileserver/server/model"
 	"fileserver/utils"
 	"fmt"
 	"net/http"
@@ -13,11 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func FileDownload(c *gin.Context, ctx context.Context, request interface{}) {
-	req := request.(*model.DownloadFileRequest)
-	fileid, err := utils.DecodeFileId(req.Key)
+func FileDownload(c *gin.Context) {
+	ctx := c.Request.Context()
+	key := c.Param("key")
+	fileid, err := utils.DecodeFileId(key)
 	if err != nil {
-		proxyutil.Fail(c, http.StatusBadRequest, fmt.Errorf("invalid down key, err:%w", err))
+		proxyutil.Fail(c, http.StatusBadRequest, fmt.Errorf("invalid down key, key:%s, err:%w", key, err))
 		return
 	}
 	file, err := filemgr.Open(ctx, fileid)
