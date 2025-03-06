@@ -10,6 +10,9 @@ import (
 	"io/fs"
 	"path/filepath"
 	"time"
+
+	"github.com/xxxsen/common/logutil"
+	"go.uber.org/zap"
 )
 
 var defaultFileMgr IFileManager
@@ -48,7 +51,12 @@ func (d *defaultFileManager) Open(ctx context.Context, fileid uint64) (io.ReadSe
 	if !ok {
 		return nil, fmt.Errorf("file not found")
 	}
-	rsc := newFsIO(ctx, d.bkio, func(ctx context.Context, blkid int32) (string, error) {
+	rsc := newFsIO(ctx, d.bkio, func(ctx context.Context, blkid int32) (fk string, err error) {
+		defer func() {
+			if err != nil {
+				logutil.GetLogger(ctx).Error("convert blockid to filekey failed", zap.Error(err), zap.Uint64("file_id", fileid), zap.Int32("blkid", blkid))
+			}
+		}()
 		pinfo, ok, err := service.FileService.GetFilePartInfo(ctx, fileid, blkid)
 		if err != nil {
 			return "", fmt.Errorf("read file part info failed, err:%w", err)

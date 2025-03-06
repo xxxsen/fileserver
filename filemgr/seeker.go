@@ -5,6 +5,9 @@ import (
 	"fileserver/blockio"
 	"fmt"
 	"io"
+
+	"github.com/xxxsen/common/logutil"
+	"go.uber.org/zap"
 )
 
 // BlockIdToFileKeyConvertFunc 实现blockid到文件key的转换, 之后seeker会使用filesystem再去获取文件流
@@ -63,7 +66,12 @@ func (f *defaultFsIO) Seek(offset int64, whence int) (int64, error) {
 	return cur, nil
 }
 
-func (f *defaultFsIO) Read(b []byte) (int, error) {
+func (f *defaultFsIO) Read(b []byte) (n int, err error) {
+	defer func() {
+		if err != nil && err != io.EOF {
+			logutil.GetLogger(f.ctx).Error("read file stream failed", zap.Error(err), zap.Int64("cursor", f.cursor), zap.Int64("fsize", f.fsize))
+		}
+	}()
 	if !f.isOpen {
 		return 0, fmt.Errorf("file not in open state")
 	}
@@ -85,7 +93,7 @@ func (f *defaultFsIO) Read(b []byte) (int, error) {
 		}
 		f.tmpReader = rc
 	}
-	n, err := f.tmpReader.Read(b)
+	n, err = f.tmpReader.Read(b)
 	if err != nil && err != io.EOF {
 		return 0, err
 	}
