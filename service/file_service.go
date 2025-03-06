@@ -53,6 +53,9 @@ func (s *fileService) FinishCreateFile(ctx context.Context, fileid uint64) error
 	}
 	partCount, err := s.GetFilePartCount(ctx, fileid)
 	if err != nil {
+		return fmt.Errorf("read file part count failed, err:%w", err)
+	}
+	if partCount != info.FilePartCount {
 		return fmt.Errorf("file part count not match, db count:%d, acquire count:%d", partCount, info.FilePartCount)
 	}
 	if _, err := dao.FileDao.MarkFileReady(ctx, &entity.MarkFileReadyRequest{
