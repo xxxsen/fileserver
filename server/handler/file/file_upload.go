@@ -2,9 +2,9 @@ package file
 
 import (
 	"context"
+	"fileserver/filemgr"
 	"fileserver/proxyutil"
 	"fileserver/server/model"
-	"fileserver/server/stream"
 	"fileserver/utils"
 	"fmt"
 	"net/http"
@@ -21,7 +21,7 @@ func FileUpload(c *gin.Context, ctx context.Context, request interface{}) {
 		return
 	}
 	defer file.Close()
-	fileid, err := stream.ServeUpload(c, ctx, file, header.Filename, header.Size)
+	fileid, err := filemgr.Create(ctx, header.Filename, header.Size, file)
 	if err != nil {
 		proxyutil.Fail(c, http.StatusInternalServerError, fmt.Errorf("upload file fail, err:%w", err))
 		return

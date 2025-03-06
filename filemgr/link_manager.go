@@ -4,12 +4,25 @@ import (
 	"context"
 	"fileserver/service"
 	"fmt"
-	"io"
 )
+
+var defaultLinkMgr ILinkManager
 
 type ILinkManager interface {
 	CreateLink(ctx context.Context, link string, fileid uint64) error
-	OpenLink(ctx context.Context, link string, pos int64) (io.ReadSeekCloser, error)
+	ResolveLink(ctx context.Context, link string) (uint64, error)
+}
+
+func SetLinkManagerImpl(mgr ILinkManager) {
+	defaultLinkMgr = mgr
+}
+
+func CreateLink(ctx context.Context, link string, fileid uint64) error {
+	return defaultLinkMgr.CreateLink(ctx, link, fileid)
+}
+
+func ResolveLink(ctx context.Context, link string) (uint64, error) {
+	return defaultLinkMgr.ResolveLink(ctx, link)
 }
 
 type defaultLinkManager struct {
@@ -23,15 +36,15 @@ func (d *defaultLinkManager) CreateLink(ctx context.Context, link string, fileid
 	return nil
 }
 
-func (d *defaultLinkManager) OpenLink(ctx context.Context, link string, pos int64) (io.ReadSeekCloser, error) {
+func (d *defaultLinkManager) ResolveLink(ctx context.Context, link string) (uint64, error) {
 	fid, ok, err := service.FileMappingService.GetFileMapping(ctx, link)
 	if err != nil {
-		return nil, fmt.Errorf("open mapping failed, err:%w", err)
+		return 0, fmt.Errorf("open mapping failed, err:%w", err)
 	}
 	if !ok {
-		return nil, fmt.Errorf("link not found")
+		return 0, fmt.Errorf("link not found")
 	}
-	return d.fmgr.Open(ctx, fid, pos)
+	return fid, nil
 }
 
 func NewLinkManager(fmgr IFileManager) ILinkManager {

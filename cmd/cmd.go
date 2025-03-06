@@ -2,10 +2,10 @@ package main
 
 import (
 	_ "fileserver/auth"
-	"fileserver/blockio"
 	"fileserver/blockio/telegram"
 	"fileserver/config"
 	"fileserver/db"
+	"fileserver/filemgr"
 	"fileserver/server"
 	"flag"
 
@@ -50,10 +50,13 @@ func main() {
 }
 
 func initStorage(c *config.Config) error {
-	tgio, err := telegram.New(int64(c.BotInfo.Chatid), c.BotInfo.Token)
+	bkio, err := telegram.New(int64(c.BotInfo.Chatid), c.BotInfo.Token)
 	if err != nil {
 		return err
 	}
-	blockio.SetBlockIO(tgio)
+	fmgr := filemgr.NewFileManager(bkio)
+	filemgr.SetFileManagerImpl(fmgr)
+	lkmgr := filemgr.NewLinkManager(fmgr)
+	filemgr.SetLinkManagerImpl(lkmgr)
 	return nil
 }

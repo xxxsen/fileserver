@@ -1,13 +1,11 @@
 package s3
 
 import (
+	"fileserver/filemgr"
 	"fileserver/proxyutil"
 	"fileserver/server/handler/s3/s3base"
-	"fileserver/server/stream"
-	"fileserver/service"
 	"fmt"
 	"net/http"
-	"path"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,16 +19,23 @@ func DownloadObject(c *gin.Context) {
 		return
 	}
 	filename := fmt.Sprintf("%s/%s", sinfo.Bucket, sinfo.Object)
-	fid, ok, err := service.FileMappingService.GetFileMapping(ctx, filename)
+	fid, err := filemgr.ResolveLink(ctx, filename)
 	if err != nil {
 		s3base.WriteError(c, http.StatusInternalServerError, fmt.Errorf("get mapping info fail, err:%w", err))
 		return
 	}
-	if !ok {
-		s3base.WriteError(c, http.StatusNotFound, fmt.Errorf("data not found"))
+	finfo, err := filemgr.Stat(ctx, fid)
+	if err != nil {
+		s3base.WriteError(c, http.StatusInternalServerError, fmt.Errorf("get file info fail, err:%w", err))
 		return
 	}
-	stream.ServeDownload(c, ctx, fid)
+	file, err := filemgr.Open(ctx, fid)
+	if err != nil {
+		s3base.WriteError(c, http.StatusInternalServerError, fmt.Errorf("open file fail, err:%w", err))
+		return
+	}
+	defer file.Close()
+	http.ServeContent(c.Writer, c.Request, finfo.Name(), finfo.ModTime(), file)
 }
 
 func UploadObject(c *gin.Context) {
@@ -42,13 +47,12 @@ func UploadObject(c *gin.Context) {
 		return
 	}
 	filename := fmt.Sprintf("%s/%s", sinfo.Bucket, sinfo.Object)
-	name := fmt.Sprintf("s3:%s", path.Base(filename))
-	fileid, err := stream.ServeUpload(c, ctx, c.Request.Body, name, c.Request.ContentLength)
+	fileid, err := filemgr.Create(ctx, filename, c.Request.ContentLength, c.Request.Body)
 	if err != nil {
 		s3base.WriteError(c, http.StatusInternalServerError, fmt.Errorf("do file upload fail, err:%w", err))
 		return
 	}
-	if err := service.FileMappingService.CreateFileMapping(ctx, filename, fileid); err != nil {
+	if err := filemgr.CreateLink(ctx, filename, fileid); err != nil {
 		s3base.WriteError(c, http.StatusInternalServerError, fmt.Errorf("create mapping fail, err:%w", err))
 		return
 	}
