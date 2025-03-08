@@ -5,6 +5,7 @@ import (
 	"fileserver/blockio"
 	"fileserver/blockio/mem"
 	"fileserver/blockio/telegram"
+	"fileserver/cache"
 	"fileserver/config"
 	"fileserver/db"
 	"fileserver/filemgr"
@@ -37,7 +38,9 @@ func main() {
 	if err := initStorage(c); err != nil {
 		logger.Fatal("init storage fail", zap.Error(err))
 	}
-
+	if err := initCache(c); err != nil {
+		logger.Fatal("init cache fail", zap.Error(err))
+	}
 	svr, err := server.New(c.Bind,
 		server.WithS3Buckets(c.S3Bucket),
 		server.WithUser(c.UserInfo),
@@ -68,5 +71,14 @@ func initStorage(c *config.Config) error {
 	filemgr.SetFileManagerImpl(fmgr)
 	lkmgr := filemgr.NewLinkManager(fmgr)
 	filemgr.SetLinkManagerImpl(lkmgr)
+	return nil
+}
+
+func initCache(c *config.Config) error {
+	cimpl, err := cache.New(50000)
+	if err != nil {
+		return err
+	}
+	cache.SetImpl(cimpl)
 	return nil
 }

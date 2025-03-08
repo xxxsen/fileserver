@@ -3,20 +3,26 @@ package service
 import (
 	"context"
 	"fileserver/dao"
+	"fileserver/dao/cache"
 	"fileserver/entity"
 )
 
 var FileService = newFileService()
 
 type fileService struct {
+	fileDao     dao.IFileDao
+	filePartDao dao.IFilePartDao
 }
 
 func newFileService() *fileService {
-	return &fileService{}
+	return &fileService{
+		fileDao:     cache.NewFileDao(dao.FileDao),
+		filePartDao: cache.NewFilePartDao(dao.FilePartDao),
+	}
 }
 
 func (s *fileService) CreateFileDraft(ctx context.Context, filename string, filesize int64, filepartcount int32) (uint64, error) {
-	rs, err := dao.FileDao.CreateFileDraft(ctx, &entity.CreateFileDraftRequest{
+	rs, err := s.fileDao.CreateFileDraft(ctx, &entity.CreateFileDraftRequest{
 		FileName:      filename,
 		FileSize:      filesize,
 		FilePartCount: filepartcount,
@@ -28,7 +34,7 @@ func (s *fileService) CreateFileDraft(ctx context.Context, filename string, file
 }
 
 func (s *fileService) CreateFilePart(ctx context.Context, fileid uint64, pidx int32, filekey string) error {
-	if _, err := dao.FilePartDao.CreateFilePart(ctx, &entity.CreateFilePartRequest{
+	if _, err := s.filePartDao.CreateFilePart(ctx, &entity.CreateFilePartRequest{
 		FileId:     fileid,
 		FilePartId: pidx,
 		FileKey:    filekey,
@@ -39,7 +45,7 @@ func (s *fileService) CreateFilePart(ctx context.Context, fileid uint64, pidx in
 }
 
 func (s *fileService) FinishCreateFile(ctx context.Context, fileid uint64) error {
-	if _, err := dao.FileDao.MarkFileReady(ctx, &entity.MarkFileReadyRequest{
+	if _, err := s.fileDao.MarkFileReady(ctx, &entity.MarkFileReadyRequest{
 		FileID: fileid,
 	}); err != nil {
 		return err
@@ -48,7 +54,7 @@ func (s *fileService) FinishCreateFile(ctx context.Context, fileid uint64) error
 }
 
 func (s *fileService) GetFileInfo(ctx context.Context, fileid uint64) (*entity.GetFileInfoItem, bool, error) {
-	rs, err := dao.FileDao.GetFileInfo(ctx, &entity.GetFileInfoRequest{
+	rs, err := s.fileDao.GetFileInfo(ctx, &entity.GetFileInfoRequest{
 		FileIds: []uint64{fileid},
 	})
 	if err != nil {
@@ -61,7 +67,7 @@ func (s *fileService) GetFileInfo(ctx context.Context, fileid uint64) (*entity.G
 }
 
 func (s *fileService) BatchGetFileInfo(ctx context.Context, fileids []uint64) (map[uint64]*entity.GetFileInfoItem, error) {
-	rs, err := dao.FileDao.GetFileInfo(ctx, &entity.GetFileInfoRequest{
+	rs, err := s.fileDao.GetFileInfo(ctx, &entity.GetFileInfoRequest{
 		FileIds: fileids,
 	})
 	if err != nil {
@@ -75,7 +81,7 @@ func (s *fileService) BatchGetFileInfo(ctx context.Context, fileids []uint64) (m
 }
 
 func (s *fileService) GetFilePartInfo(ctx context.Context, fileid uint64, partid int32) (*entity.GetFilePartInfoItem, bool, error) {
-	rs, err := dao.FilePartDao.GetFilePartInfo(ctx, &entity.GetFilePartInfoRequest{
+	rs, err := s.filePartDao.GetFilePartInfo(ctx, &entity.GetFilePartInfoRequest{
 		FileId:     fileid,
 		FilePartId: []int32{partid},
 	})
@@ -86,12 +92,4 @@ func (s *fileService) GetFilePartInfo(ctx context.Context, fileid uint64, partid
 		return nil, false, nil
 	}
 	return rs.List[0], true, nil
-}
-
-func (s *fileService) GetFilePartCount(ctx context.Context, fileid uint64) (int32, error) {
-	rs, err := dao.FilePartDao.GetFilePartCount(ctx, &entity.GetFilePartCountRequest{FileId: fileid})
-	if err != nil {
-		return 0, err
-	}
-	return rs.Count, nil
 }

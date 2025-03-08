@@ -16,7 +16,6 @@ var FilePartDao IFilePartDao = NewFilePartDao()
 type IFilePartDao interface {
 	CreateFilePart(ctx context.Context, req *entity.CreateFilePartRequest) (*entity.CreateFilePartResponse, error)
 	GetFilePartInfo(ctx context.Context, req *entity.GetFilePartInfoRequest) (*entity.GetFilePartInfoResponse, error)
-	GetFilePartCount(ctx context.Context, req *entity.GetFilePartCountRequest) (*entity.GetFilePartCountResponse, error)
 }
 
 type filePartDaoImpl struct {
@@ -89,25 +88,4 @@ func (f *filePartDaoImpl) GetFilePartInfo(ctx context.Context, req *entity.GetFi
 		return nil, err
 	}
 	return &entity.GetFilePartInfoResponse{List: rs}, nil
-}
-
-func (f *filePartDaoImpl) GetFilePartCount(ctx context.Context, req *entity.GetFilePartCountRequest) (*entity.GetFilePartCountResponse, error) {
-	sql := fmt.Sprintf("select count(*) as counter from %s where file_id = ?", f.table())
-	rows, err := db.GetClient().QueryContext(ctx, sql, req.FileId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var count int32
-	for rows.Next() {
-		if err := rows.Scan(&count); err != nil {
-			return nil, err
-		}
-		break
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return &entity.GetFilePartCountResponse{Count: count}, nil
 }
