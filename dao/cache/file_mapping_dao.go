@@ -33,7 +33,7 @@ func (f *fileMappingDao) GetFileMapping(ctx context.Context, req *entity.GetFile
 			return nil, ok, err
 		}
 		_ = c.Set(ctx, k, rsp.Item, defaultFileMappingCacheExpireTime)
-		return rsp, true, nil
+		return rsp.Item, true, nil
 	})
 	if err != nil {
 		return nil, false, err
