@@ -15,8 +15,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var FileDao IFileDao = NewFileDao()
-
 type IFileDao interface {
 	CreateFileDraft(ctx context.Context, req *entity.CreateFileDraftRequest) (*entity.CreateFileDraftResponse, error)
 	MarkFileReady(ctx context.Context, req *entity.MarkFileReadyRequest) (*entity.MarkFileReadyResponse, error)

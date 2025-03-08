@@ -16,8 +16,8 @@ type fileService struct {
 
 func newFileService() *fileService {
 	return &fileService{
-		fileDao:     cache.NewFileDao(dao.FileDao),
-		filePartDao: cache.NewFilePartDao(dao.FilePartDao),
+		fileDao:     cache.NewFileDao(dao.NewFileDao()),
+		filePartDao: cache.NewFilePartDao(dao.NewFilePartDao()),
 	}
 }
 

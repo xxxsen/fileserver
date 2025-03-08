@@ -11,8 +11,6 @@ import (
 	"github.com/xxxsen/common/database/dbkit"
 )
 
-var FilePartDao IFilePartDao = NewFilePartDao()
-
 type IFilePartDao interface {
 	CreateFilePart(ctx context.Context, req *entity.CreateFilePartRequest) (*entity.CreateFilePartResponse, error)
 	GetFilePartInfo(ctx context.Context, req *entity.GetFilePartInfoRequest) (*entity.GetFilePartInfoResponse, error)

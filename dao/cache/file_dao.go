@@ -13,8 +13,6 @@ const (
 	defaultFileDaoCacheExpireTime = 7 * 24 * time.Hour
 )
 
-var FileDao dao.IFileDao = NewFileDao(dao.FileDao)
-
 type fileDao struct {
 	impl dao.IFileDao
 }

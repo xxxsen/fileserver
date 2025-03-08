@@ -15,7 +15,7 @@ type fileMappingService struct {
 
 func newFileMappingService() *fileMappingService {
 	return &fileMappingService{
-		fileMappingDao: cache.NewFileMappingDao(dao.FileMappingDao),
+		fileMappingDao: cache.NewFileMappingDao(dao.NewFileMappingDao()),
 	}
 }
 

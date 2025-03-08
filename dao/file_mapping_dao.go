@@ -13,8 +13,6 @@ import (
 	"github.com/xxxsen/common/database/dbkit"
 )
 
-var FileMappingDao IFileMappingDao = NewFileMappingDao()
-
 type IFileMappingDao interface {
 	GetFileMapping(ctx context.Context, req *entity.GetFileMappingRequest) (*entity.GetFileMappingResponse, bool, error)
 	CreateFileMapping(ctx context.Context, req *entity.CreateFileMappingRequest) (*entity.CreateFileMappingResponse, error)
