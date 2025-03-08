@@ -38,9 +38,9 @@ func main() {
 		logger.Fatal("init storage fail", zap.Error(err))
 	}
 
-	svr, err := server.New(c.ServerInfo.Address,
+	svr, err := server.New(c.Bind,
 		server.WithS3Buckets(c.S3Bucket),
-		server.WithUser(c.AuthInfo),
+		server.WithUser(c.UserInfo),
 	)
 	if err != nil {
 		logger.Fatal("init server fail", zap.Error(err))

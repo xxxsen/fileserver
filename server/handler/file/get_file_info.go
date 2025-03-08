@@ -1,7 +1,6 @@
 package file
 
 import (
-	"context"
 	"fileserver/proxyutil"
 	"fileserver/server/model"
 	"fileserver/service"
@@ -12,13 +11,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetMetaInfo(c *gin.Context, ctx context.Context, request interface{}) {
-	req := request.(*model.GetFileInfoRequest)
-	if len(req.Key) == 0 {
-		proxyutil.Fail(c, http.StatusBadRequest, fmt.Errorf("empty key"))
-		return
-	}
-	fileid, err := utils.DecodeFileId(req.Key)
+func GetMetaInfo(c *gin.Context) {
+	ctx := c.Request.Context()
+	key := c.Param("key")
+	fileid, err := utils.DecodeFileId(key)
 	if err != nil {
 		proxyutil.Fail(c, http.StatusBadRequest, fmt.Errorf("decode down key fail, err:%w", err))
 		return
@@ -39,7 +35,7 @@ func GetMetaInfo(c *gin.Context, ctx context.Context, request interface{}) {
 	}
 	proxyutil.Success(c, &model.GetFileInfoResponse{
 		Item: &model.GetFileInfoItem{
-			Key:           req.Key,
+			Key:           key,
 			Exist:         true,
 			FileName:      item.FileName,
 			FileSize:      item.FileSize,

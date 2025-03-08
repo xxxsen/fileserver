@@ -9,14 +9,6 @@ import (
 	"github.com/xxxsen/common/logger"
 )
 
-type ServerConfig struct {
-	Address string `json:"address"`
-}
-
-type IDGenConfig struct {
-	WorkerID uint16 `json:"worker_id"`
-}
-
 type BotConfig struct {
 	Chatid uint64 `json:"chatid"`
 	Token  string `json:"token"`
@@ -28,14 +20,14 @@ type DebugConfig struct {
 }
 
 type Config struct {
-	LogInfo    logger.LogConfig  `json:"log_info"`
-	DBFile     string            `json:"db_file"`
-	ServerInfo ServerConfig      `json:"server_info"`
-	BotInfo    BotConfig         `json:"bot_config"`
-	AuthInfo   map[string]string `json:"auth_info"`
-	S3Bucket   []string          `json:"s3_bucket"`
-	TempDir    string            `json:"temp_dir"`
-	DebugMode  DebugConfig       `json:"debug_mode"`
+	Bind      string            `json:"bind"`
+	LogInfo   logger.LogConfig  `json:"log_info"`
+	DBFile    string            `json:"db_file"`
+	BotInfo   BotConfig         `json:"bot_config"`
+	UserInfo  map[string]string `json:"user_info"`
+	S3Bucket  []string          `json:"s3_bucket"`
+	TempDir   string            `json:"temp_dir"`
+	DebugMode DebugConfig       `json:"debug_mode"`
 }
 
 func Parse(f string) (*Config, error) {

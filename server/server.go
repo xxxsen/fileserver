@@ -51,7 +51,7 @@ func (s *Server) initAPI(router *gin.Engine) {
 	fileRouter := router.Group("/file")
 	fileRouter.POST("/upload", authMiddleware, proxyutil.WrapBizFunc(file.FileUpload, &model.UploadFileRequest{}))
 	fileRouter.GET("/download/:key", file.FileDownload)
-	fileRouter.GET("/meta", proxyutil.WrapBizFunc(file.GetMetaInfo, &model.GetFileInfoRequest{}))
+	fileRouter.GET("/meta/:key", file.GetMetaInfo)
 	for _, bk := range s.c.s3Buckets {
 		bucketPath := fmt.Sprintf("/:%s", bk)
 		routerPath := fmt.Sprintf("%s/*object", bucketPath)
