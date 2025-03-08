@@ -12,15 +12,15 @@ type GetFileRequest struct {
 }
 
 type FileItem struct {
-	Id         uint64
-	FileName   string
-	Hash       string
-	FileSize   uint64
-	CreateTime uint64
-	DownKey    uint64
-	Extra      []byte
-	FileKey    string
-	StType     uint8
+	Id         uint64 `json:"id"`
+	FileName   string `json:"file_name"`
+	Hash       string `json:"hash"`
+	FileSize   uint64 `json:"file_size"`
+	CreateTime uint64 `json:"create_time"`
+	DownKey    uint64 `json:"down_key"`
+	Extra      []byte `json:"extra"`
+	FileKey    string `json:"file_key"`
+	StType     uint8  `json:"st_type"`
 }
 
 type GetFileResponse struct {
