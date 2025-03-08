@@ -14,7 +14,7 @@ tgfile
 	"bind": ":9901", //监听地址
 	"log_info": { //日志信息
 		"console": true,
-		"level": debug
+		"level": "debug"
 	},
 	"db_file": "/data/data.db", //索引存储位置
 	"bot_info": { //用于存储文件块的机器人配置
