@@ -53,11 +53,10 @@ func (s *Server) initAPI(router *gin.Engine) {
 	fileRouter.GET("/download/:key", file.FileDownload)
 	fileRouter.GET("/meta/:key", file.GetMetaInfo)
 	for _, bk := range s.c.s3Buckets {
-		bucketPath := fmt.Sprintf("/:%s", bk)
-		routerPath := fmt.Sprintf("%s/*object", bucketPath)
-		router.GET(bucketPath, middleware.ExtractS3InfoMiddleware(), s3.GetBucket)
-		router.GET(routerPath, middleware.ExtractS3InfoMiddleware(), s3.DownloadObject)
-		router.PUT(routerPath, authMiddleware, middleware.ExtractS3InfoMiddleware(), s3.UploadObject)
+		bucketRouter := router.Group(fmt.Sprintf("/%s", bk))
+		bucketRouter.GET("", s3.GetBucket)
+		bucketRouter.GET("/*object", s3.DownloadObject)
+		bucketRouter.PUT("/*object", s3.UploadObject)
 	}
 }
 func (s *Server) Run() error {
