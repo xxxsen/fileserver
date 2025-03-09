@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"context"
-	"fileserver/cmd/migrator/config"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"tgfile/cmd/migrator/config"
 
 	"github.com/xxxsen/common/logger"
 	"github.com/xxxsen/common/logutil"

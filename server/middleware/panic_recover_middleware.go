@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"fileserver/proxyutil"
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"tgfile/proxyutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/logutil"

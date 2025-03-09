@@ -2,11 +2,11 @@ package telegram
 
 import (
 	"context"
-	"fileserver/blockio"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"tgfile/blockio"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"

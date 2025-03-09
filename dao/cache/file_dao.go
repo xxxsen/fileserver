@@ -2,10 +2,10 @@ package cache
 
 import (
 	"context"
-	"fileserver/cache"
-	"fileserver/dao"
-	"fileserver/entity"
 	"fmt"
+	"tgfile/cache"
+	"tgfile/dao"
+	"tgfile/entity"
 	"time"
 )
 

@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"fileserver/auth"
-	"fileserver/proxyutil"
 	"fmt"
 	"net/http"
+	"tgfile/auth"
+	"tgfile/proxyutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/errs"

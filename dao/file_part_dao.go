@@ -2,9 +2,9 @@ package dao
 
 import (
 	"context"
-	"fileserver/db"
-	"fileserver/entity"
 	"fmt"
+	"tgfile/db"
+	"tgfile/entity"
 	"time"
 
 	"github.com/didi/gendry/builder"

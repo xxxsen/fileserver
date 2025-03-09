@@ -1,11 +1,11 @@
 package s3
 
 import (
-	"fileserver/filemgr"
-	"fileserver/server/handler/s3/s3base"
 	"fmt"
 	"net/http"
 	"strconv"
+	"tgfile/filemgr"
+	"tgfile/server/handler/s3/s3base"
 
 	"github.com/gin-gonic/gin"
 )

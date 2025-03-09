@@ -2,13 +2,13 @@ package filemgr
 
 import (
 	"context"
-	"fileserver/blockio"
-	"fileserver/service"
-	"fileserver/utils"
 	"fmt"
 	"io"
 	"io/fs"
 	"path/filepath"
+	"tgfile/blockio"
+	"tgfile/service"
+	"tgfile/utils"
 	"time"
 
 	"github.com/xxxsen/common/logutil"

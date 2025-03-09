@@ -1,16 +1,16 @@
 package main
 
 import (
-	_ "fileserver/auth"
-	"fileserver/blockio"
-	"fileserver/blockio/mem"
-	"fileserver/blockio/telegram"
-	"fileserver/cache"
-	"fileserver/config"
-	"fileserver/db"
-	"fileserver/filemgr"
-	"fileserver/server"
 	"flag"
+	_ "tgfile/auth"
+	"tgfile/blockio"
+	"tgfile/blockio/mem"
+	"tgfile/blockio/telegram"
+	"tgfile/cache"
+	"tgfile/config"
+	"tgfile/db"
+	"tgfile/filemgr"
+	"tgfile/server"
 
 	"github.com/xxxsen/common/idgen"
 	"github.com/xxxsen/common/logger"

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"fileserver/proxyutil"
+	"tgfile/proxyutil"
 	"time"
 
 	"github.com/gin-gonic/gin"

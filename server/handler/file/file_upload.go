@@ -2,12 +2,12 @@ package file
 
 import (
 	"context"
-	"fileserver/filemgr"
-	"fileserver/proxyutil"
-	"fileserver/server/model"
-	"fileserver/utils"
 	"fmt"
 	"net/http"
+	"tgfile/filemgr"
+	"tgfile/proxyutil"
+	"tgfile/server/model"
+	"tgfile/utils"
 
 	"github.com/gin-gonic/gin"
 )

@@ -2,8 +2,8 @@ package s3base
 
 import (
 	"encoding/xml"
-	"fileserver/proxyutil"
 	"fmt"
+	"tgfile/proxyutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/logutil"
