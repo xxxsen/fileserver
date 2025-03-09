@@ -8,9 +8,12 @@ import (
 
 var defaultLinkMgr ILinkManager
 
+type IterLinkFunc func(ctx context.Context, link string, fileid uint64) (bool, error)
+
 type ILinkManager interface {
 	CreateLink(ctx context.Context, link string, fileid uint64) error
 	ResolveLink(ctx context.Context, link string) (uint64, error)
+	IterLink(ctx context.Context, cb IterLinkFunc) error
 }
 
 func SetLinkManagerImpl(mgr ILinkManager) {
@@ -23,6 +26,10 @@ func CreateLink(ctx context.Context, link string, fileid uint64) error {
 
 func ResolveLink(ctx context.Context, link string) (uint64, error) {
 	return defaultLinkMgr.ResolveLink(ctx, link)
+}
+
+func IterLink(ctx context.Context, cb IterLinkFunc) error {
+	return defaultLinkMgr.IterLink(ctx, cb)
 }
 
 type defaultLinkManager struct {
@@ -51,4 +58,10 @@ func NewLinkManager(fmgr IFileManager) ILinkManager {
 	return &defaultLinkManager{
 		fmgr: fmgr,
 	}
+}
+
+func (d *defaultLinkManager) IterLink(ctx context.Context, cb IterLinkFunc) error {
+	return service.FileMappingService.IterFileMapping(ctx, func(ctx context.Context, filename string, fileid uint64) (bool, error) {
+		return cb(ctx, filename, fileid)
+	})
 }

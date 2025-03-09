@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"tgfile/proxyutil"
+	"tgfile/server/handler/backup"
 	"tgfile/server/handler/file"
 	"tgfile/server/handler/s3"
 	"tgfile/server/middleware"
@@ -49,14 +50,23 @@ func (s *Server) initMiddleware(router *gin.Engine) {
 func (s *Server) initAPI(router *gin.Engine) {
 	authMiddleware := middleware.CommonAuth(s.c.userMap)
 	fileRouter := router.Group("/file")
-	fileRouter.POST("/upload", authMiddleware, proxyutil.WrapBizFunc(file.FileUpload, &model.UploadFileRequest{}))
-	fileRouter.GET("/download/:key", file.FileDownload)
-	fileRouter.GET("/meta/:key", file.GetMetaInfo)
-	for _, bk := range s.c.s3Buckets {
-		bucketRouter := router.Group(fmt.Sprintf("/%s", bk))
-		bucketRouter.GET("", s3.GetBucket)
-		bucketRouter.GET("/*object", s3.DownloadObject)
-		bucketRouter.PUT("/*object", s3.UploadObject)
+	{
+		fileRouter.POST("/upload", authMiddleware, proxyutil.WrapBizFunc(file.FileUpload, &model.UploadFileRequest{}))
+		fileRouter.GET("/download/:key", file.FileDownload)
+		fileRouter.GET("/meta/:key", file.GetMetaInfo)
+	}
+	backupRouter := router.Group("/backup", authMiddleware)
+	{
+		backupRouter.GET("/export", backup.Export)
+		backupRouter.POST("/import", proxyutil.WrapBizFunc(backup.Import, &model.ImportRequest{}))
+	}
+	{
+		for _, bk := range s.c.s3Buckets {
+			bucketRouter := router.Group(fmt.Sprintf("/%s", bk))
+			bucketRouter.GET("", s3.GetBucket)
+			bucketRouter.GET("/*object", s3.DownloadObject)
+			bucketRouter.PUT("/*object", s3.UploadObject)
+		}
 	}
 }
 func (s *Server) Run() error {

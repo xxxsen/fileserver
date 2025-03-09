@@ -2,7 +2,6 @@ package dao
 
 import (
 	"context"
-	"fmt"
 	"tgfile/db"
 	"tgfile/entity"
 	"time"
@@ -10,9 +9,16 @@ import (
 	"github.com/xxxsen/common/database/kv"
 )
 
+const (
+	defaultFileMappingPrefix = "tgfile:mapping:"
+)
+
+type IterFileMappingFunc func(ctx context.Context, name string, fileid uint64) (bool, error)
+
 type IFileMappingDao interface {
 	GetFileMapping(ctx context.Context, req *entity.GetFileMappingRequest) (*entity.GetFileMappingResponse, bool, error)
 	CreateFileMapping(ctx context.Context, req *entity.CreateFileMappingRequest) (*entity.CreateFileMappingResponse, error)
+	IterFileMapping(ctx context.Context, cb IterFileMappingFunc) error
 }
 
 type fileMappingDao struct {
@@ -27,7 +33,7 @@ func (f *fileMappingDao) table() string {
 }
 
 func (f *fileMappingDao) buildKey(name string) string {
-	return fmt.Sprintf("tgfile:mapping:%s", name)
+	return defaultFileMappingPrefix + name
 }
 
 func (f *fileMappingDao) GetFileMapping(ctx context.Context, req *entity.GetFileMappingRequest) (*entity.GetFileMappingResponse, bool, error) {
@@ -53,4 +59,10 @@ func (f *fileMappingDao) CreateFileMapping(ctx context.Context, req *entity.Crea
 		return nil, err
 	}
 	return &entity.CreateFileMappingResponse{}, nil
+}
+
+func (f *fileMappingDao) IterFileMapping(ctx context.Context, cb IterFileMappingFunc) error {
+	return kv.IterJsonObject(ctx, db.GetClient(), f.table(), defaultFileMappingPrefix, func(ctx context.Context, key string, val *entity.FileMappingItem) (bool, error) {
+		return cb(ctx, val.FileName, val.FileId)
+	})
 }

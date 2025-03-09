@@ -6,7 +6,6 @@ type GetFileMappingRequest struct {
 
 type FileMappingItem struct {
 	FileName string `json:"file_name"`
-	FileHash string `json:"file_hash"`
 	FileId   uint64 `json:"file_id"`
 	Ctime    uint64 `json:"ctime"`
 	Mtime    uint64 `json:"mtime"`

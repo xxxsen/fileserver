@@ -9,6 +9,8 @@ import (
 
 var FileMappingService = newFileMappingService()
 
+type IterMappingFunc func(ctx context.Context, filename string, fileid uint64) (bool, error)
+
 type fileMappingService struct {
 	fileMappingDao dao.IFileMappingDao
 }
@@ -38,4 +40,10 @@ func (s *fileMappingService) CreateFileMapping(ctx context.Context, filename str
 		FileId:   fileid,
 	})
 	return err
+}
+
+func (s *fileMappingService) IterFileMapping(ctx context.Context, cb IterMappingFunc) error {
+	return s.fileMappingDao.IterFileMapping(ctx, func(ctx context.Context, name string, fileid uint64) (bool, error) {
+		return cb(ctx, name, fileid)
+	})
 }
