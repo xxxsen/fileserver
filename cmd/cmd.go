@@ -2,8 +2,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
 	_ "tgfile/auth"
 	"tgfile/blockio"
+	"tgfile/blockio/localfile"
 	"tgfile/blockio/mem"
 	"tgfile/blockio/telegram"
 	"tgfile/cache"
@@ -60,7 +64,14 @@ func initStorage(c *config.Config) error {
 	}
 	if c.DebugMode.Enable {
 		getter = func() (blockio.IBlockIO, error) {
-			return mem.New(c.DebugMode.MemBlockSize), nil
+			switch c.DebugMode.BlockType {
+			case "file":
+				return localfile.New(filepath.Join(os.TempDir(), "tgfile-temp"), c.DebugMode.BlockSize)
+			case "mem":
+				return mem.New(c.DebugMode.BlockSize), nil
+			default:
+				return nil, fmt.Errorf("unknown debug block type:%s", c.DebugMode.BlockType)
+			}
 		}
 	}
 	bkio, err := getter()

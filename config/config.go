@@ -15,8 +15,9 @@ type BotConfig struct {
 }
 
 type DebugConfig struct {
-	Enable       bool  `json:"enable"`
-	MemBlockSize int64 `json:"mem_block_size"`
+	Enable    bool   `json:"enable"`
+	BlockType string `json:"block_type"`
+	BlockSize int64  `json:"block_size"`
 }
 
 type Config struct {

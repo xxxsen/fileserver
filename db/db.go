@@ -14,7 +14,7 @@ var (
 	tableList = []string{
 		"tg_file_tab",
 		"tg_file_part_tab",
-		"tg_file_part_tab",
+		"tg_file_mapping_tab",
 	}
 )
 
