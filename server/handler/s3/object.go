@@ -3,7 +3,6 @@ package s3
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"tgfile/filemgr"
 	"tgfile/server/handler/s3/s3base"
 
@@ -29,7 +28,7 @@ func DownloadObject(c *gin.Context) {
 		return
 	}
 	defer file.Close()
-	c.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", strconv.Quote(finfo.Name())))
+	//c.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", strconv.Quote()))
 	http.ServeContent(c.Writer, c.Request, finfo.Name(), finfo.ModTime(), file)
 }
 
