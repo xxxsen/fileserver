@@ -18,10 +18,9 @@ type GetFileInfoRequest struct {
 	Key string `form:"key"  binding:"required"`
 }
 
-type GetFileInfoItem struct {
+type FileInfoItem struct {
 	Key           string `json:"key"`
 	Exist         bool   `json:"exist"`
-	FileName      string `json:"file_name"`
 	FileSize      int64  `json:"file_size"`
 	Ctime         int64  `json:"ctime"`
 	Mtime         int64  `json:"mtime"`
@@ -29,5 +28,5 @@ type GetFileInfoItem struct {
 }
 
 type GetFileInfoResponse struct {
-	Item *GetFileInfoItem `json:"item"`
+	Item *FileInfoItem `json:"item"`
 }

@@ -36,11 +36,10 @@ func (f *fileDaoImpl) buildKey(fileid uint64) string {
 
 func (f *fileDaoImpl) CreateFileDraft(ctx context.Context, req *entity.CreateFileDraftRequest) (*entity.CreateFileDraftResponse, error) {
 	fileid := idgen.NextId()
-	logutil.GetLogger(ctx).Debug("create file part", zap.Uint64("fileid", fileid), zap.Int64("size", req.FileSize), zap.String("name", req.FileName))
+	logutil.GetLogger(ctx).Debug("create file part", zap.Uint64("fileid", fileid), zap.Int64("size", req.FileSize))
 	now := time.Now().UnixMilli()
 	item := &entity.FileInfoItem{
 		FileId:        fileid,
-		FileName:      req.FileName,
 		FileSize:      req.FileSize,
 		FilePartCount: req.FilePartCount,
 		Ctime:         now,

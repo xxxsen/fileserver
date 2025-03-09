@@ -1,7 +1,6 @@
 package entity
 
 type CreateFileDraftRequest struct {
-	FileName      string
 	FileSize      int64
 	FilePartCount int32
 }
@@ -32,7 +31,6 @@ type GetFileInfoRequest struct {
 
 type FileInfoItem struct {
 	FileId        uint64 `json:"file_id"`
-	FileName      string `json:"file_name"`
 	FileSize      int64  `json:"file_size"`
 	FilePartCount int32  `json:"file_part_count"`
 	Ctime         int64  `json:"ctime"`

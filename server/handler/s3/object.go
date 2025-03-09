@@ -36,7 +36,7 @@ func DownloadObject(c *gin.Context) {
 func UploadObject(c *gin.Context) {
 	ctx := c.Request.Context()
 	filename := c.Request.URL.Path
-	fileid, err := filemgr.Create(ctx, filename, c.Request.ContentLength, c.Request.Body)
+	fileid, err := filemgr.Create(ctx, c.Request.ContentLength, c.Request.Body)
 	if err != nil {
 		s3base.WriteError(c, http.StatusInternalServerError, fmt.Errorf("do file upload fail, err:%w", err))
 		return

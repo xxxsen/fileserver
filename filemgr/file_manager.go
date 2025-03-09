@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"path/filepath"
 	"tgfile/blockio"
 	"tgfile/service"
 	"tgfile/utils"
@@ -20,7 +19,7 @@ var defaultFileMgr IFileManager
 type IFileManager interface {
 	Stat(ctx context.Context, fileid uint64) (fs.FileInfo, error)
 	Open(ctx context.Context, fileid uint64) (io.ReadSeekCloser, error)
-	Create(ctx context.Context, name string, size int64, r io.Reader) (uint64, error)
+	Create(ctx context.Context, size int64, r io.Reader) (uint64, error)
 }
 
 func SetFileManagerImpl(mgr IFileManager) {
@@ -35,8 +34,8 @@ func Open(ctx context.Context, fileid uint64) (io.ReadSeekCloser, error) {
 	return defaultFileMgr.Open(ctx, fileid)
 }
 
-func Create(ctx context.Context, name string, size int64, r io.Reader) (uint64, error) {
-	return defaultFileMgr.Create(ctx, name, size, r)
+func Create(ctx context.Context, size int64, r io.Reader) (uint64, error) {
+	return defaultFileMgr.Create(ctx, size, r)
 }
 
 type defaultFileManager struct {
@@ -69,9 +68,9 @@ func (d *defaultFileManager) Open(ctx context.Context, fileid uint64) (io.ReadSe
 	return rsc, nil
 }
 
-func (d *defaultFileManager) Create(ctx context.Context, filename string, size int64, reader io.Reader) (uint64, error) {
+func (d *defaultFileManager) Create(ctx context.Context, size int64, reader io.Reader) (uint64, error) {
 	blkcnt := utils.CalcFileBlockCount(uint64(size), uint64(d.bkio.MaxFileSize()))
-	fileid, err := service.FileService.CreateFileDraft(ctx, filename, size, int32(blkcnt))
+	fileid, err := service.FileService.CreateFileDraft(ctx, size, int32(blkcnt))
 	if err != nil {
 		return 0, fmt.Errorf("create file draft failed, err:%w", err)
 	}
@@ -100,25 +99,23 @@ func (d *defaultFileManager) Stat(ctx context.Context, fileid uint64) (fs.FileIn
 	if !ok {
 		return nil, fmt.Errorf("file not found")
 	}
-	return newFileInfo(filepath.Base(finfo.FileName), finfo.FileSize, finfo.Mtime), nil
+	return newFileInfo(finfo.FileSize, finfo.Mtime), nil
 }
 
-func newFileInfo(name string, sz int64, mtime int64) fs.FileInfo {
+func newFileInfo(sz int64, mtime int64) fs.FileInfo {
 	return &defaultFileInfo{
-		name:  name,
 		sz:    sz,
 		mtime: time.UnixMilli(mtime),
 	}
 }
 
 type defaultFileInfo struct {
-	name  string
 	sz    int64
 	mtime time.Time
 }
 
 func (d *defaultFileInfo) Name() string {
-	return d.name
+	return "block_part"
 }
 
 func (d *defaultFileInfo) Size() int64 {

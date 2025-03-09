@@ -21,9 +21,8 @@ func newFileService() *fileService {
 	}
 }
 
-func (s *fileService) CreateFileDraft(ctx context.Context, filename string, filesize int64, filepartcount int32) (uint64, error) {
+func (s *fileService) CreateFileDraft(ctx context.Context, filesize int64, filepartcount int32) (uint64, error) {
 	rs, err := s.fileDao.CreateFileDraft(ctx, &entity.CreateFileDraftRequest{
-		FileName:      filename,
 		FileSize:      filesize,
 		FilePartCount: filepartcount,
 	})

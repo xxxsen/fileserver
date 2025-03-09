@@ -72,7 +72,7 @@ func Import(c *gin.Context, ctx context.Context, request interface{}) {
 
 func importOneFile(ctx context.Context, h *tar.Header, r *tar.Reader) error {
 	limitR := io.LimitReader(r, h.Size)
-	fileid, err := filemgr.Create(ctx, h.Name, h.Size, limitR)
+	fileid, err := filemgr.Create(ctx, h.Size, limitR)
 	if err != nil {
 		return fmt.Errorf("create file failed, err:%w", err)
 	}

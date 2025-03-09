@@ -27,17 +27,16 @@ func GetMetaInfo(c *gin.Context) {
 	item, ok := rsMap[fileid]
 	if !ok {
 		proxyutil.Success(c, &model.GetFileInfoResponse{
-			Item: &model.GetFileInfoItem{
+			Item: &model.FileInfoItem{
 				Exist: false,
 			},
 		})
 		return
 	}
 	proxyutil.Success(c, &model.GetFileInfoResponse{
-		Item: &model.GetFileInfoItem{
+		Item: &model.FileInfoItem{
 			Key:           key,
 			Exist:         true,
-			FileName:      item.FileName,
 			FileSize:      item.FileSize,
 			Ctime:         item.Ctime,
 			Mtime:         item.Mtime,

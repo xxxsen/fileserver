@@ -21,7 +21,7 @@ func FileUpload(c *gin.Context, ctx context.Context, request interface{}) {
 		return
 	}
 	defer file.Close()
-	fileid, err := filemgr.Create(ctx, header.Filename, header.Size, file)
+	fileid, err := filemgr.Create(ctx, header.Size, file)
 	if err != nil {
 		proxyutil.Fail(c, http.StatusInternalServerError, fmt.Errorf("upload file fail, err:%w", err))
 		return
