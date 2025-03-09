@@ -75,7 +75,7 @@ func (f *filePartDao) GetFilePartInfo(ctx context.Context, req *entity.GetFilePa
 			logutil.GetLogger(ctx).Error("cache key not found", zap.Uint64("file_id", req.FileId), zap.Int32("file_part_id", bid), zap.String("key", k))
 			continue
 		}
-		rsp.List = append(rsp.List, res.(*entity.GetFilePartInfoItem))
+		rsp.List = append(rsp.List, res.(*entity.FilePartInfoItem))
 	}
 	return rsp, nil
 }

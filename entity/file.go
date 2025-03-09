@@ -30,8 +30,7 @@ type GetFileInfoRequest struct {
 	FileIds []uint64
 }
 
-type GetFileInfoItem struct {
-	Id            uint64 `json:"id"`
+type FileInfoItem struct {
 	FileId        uint64 `json:"file_id"`
 	FileName      string `json:"file_name"`
 	FileSize      int64  `json:"file_size"`
@@ -42,5 +41,5 @@ type GetFileInfoItem struct {
 }
 
 type GetFileInfoResponse struct {
-	List []*GetFileInfoItem
+	List []*FileInfoItem
 }

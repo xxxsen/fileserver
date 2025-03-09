@@ -41,7 +41,7 @@ func (f *fileMappingDao) GetFileMapping(ctx context.Context, req *entity.GetFile
 	if !ok {
 		return nil, false, nil
 	}
-	return &entity.GetFileMappingResponse{Item: res.(*entity.GetFileMappingItem)}, true, nil
+	return &entity.GetFileMappingResponse{Item: res.(*entity.FileMappingItem)}, true, nil
 }
 
 func (f *fileMappingDao) CreateFileMapping(ctx context.Context, req *entity.CreateFileMappingRequest) (*entity.CreateFileMappingResponse, error) {
