@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	"fileserver/dao"
-	"fileserver/dao/cache"
-	"fileserver/entity"
+	"tgfile/dao"
+	"tgfile/dao/cache"
+	"tgfile/entity"
 )
 
 var FileMappingService = newFileMappingService()

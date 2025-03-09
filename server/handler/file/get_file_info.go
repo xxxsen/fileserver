@@ -1,12 +1,12 @@
 package file
 
 import (
-	"fileserver/proxyutil"
-	"fileserver/server/model"
-	"fileserver/service"
-	"fileserver/utils"
 	"fmt"
 	"net/http"
+	"tgfile/proxyutil"
+	"tgfile/server/model"
+	"tgfile/service"
+	"tgfile/utils"
 
 	"github.com/gin-gonic/gin"
 )

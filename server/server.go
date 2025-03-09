@@ -1,12 +1,12 @@
 package server
 
 import (
-	"fileserver/proxyutil"
-	"fileserver/server/handler/file"
-	"fileserver/server/handler/s3"
-	"fileserver/server/middleware"
-	"fileserver/server/model"
 	"fmt"
+	"tgfile/proxyutil"
+	"tgfile/server/handler/file"
+	"tgfile/server/handler/s3"
+	"tgfile/server/middleware"
+	"tgfile/server/model"
 
 	"github.com/gin-gonic/gin"
 )

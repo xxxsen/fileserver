@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
-	"fileserver/dao"
-	"fileserver/dao/cache"
-	"fileserver/entity"
+	"tgfile/dao"
+	"tgfile/dao/cache"
+	"tgfile/entity"
 )
 
 var FileService = newFileService()
@@ -53,7 +53,7 @@ func (s *fileService) FinishCreateFile(ctx context.Context, fileid uint64) error
 	return nil
 }
 
-func (s *fileService) GetFileInfo(ctx context.Context, fileid uint64) (*entity.GetFileInfoItem, bool, error) {
+func (s *fileService) GetFileInfo(ctx context.Context, fileid uint64) (*entity.FileInfoItem, bool, error) {
 	rs, err := s.fileDao.GetFileInfo(ctx, &entity.GetFileInfoRequest{
 		FileIds: []uint64{fileid},
 	})
@@ -66,21 +66,21 @@ func (s *fileService) GetFileInfo(ctx context.Context, fileid uint64) (*entity.G
 	return rs.List[0], true, nil
 }
 
-func (s *fileService) BatchGetFileInfo(ctx context.Context, fileids []uint64) (map[uint64]*entity.GetFileInfoItem, error) {
+func (s *fileService) BatchGetFileInfo(ctx context.Context, fileids []uint64) (map[uint64]*entity.FileInfoItem, error) {
 	rs, err := s.fileDao.GetFileInfo(ctx, &entity.GetFileInfoRequest{
 		FileIds: fileids,
 	})
 	if err != nil {
 		return nil, err
 	}
-	mapper := make(map[uint64]*entity.GetFileInfoItem, len(rs.List))
+	mapper := make(map[uint64]*entity.FileInfoItem, len(rs.List))
 	for _, item := range rs.List {
 		mapper[item.FileId] = item
 	}
 	return mapper, nil
 }
 
-func (s *fileService) GetFilePartInfo(ctx context.Context, fileid uint64, partid int32) (*entity.GetFilePartInfoItem, bool, error) {
+func (s *fileService) GetFilePartInfo(ctx context.Context, fileid uint64, partid int32) (*entity.FilePartInfoItem, bool, error) {
 	rs, err := s.filePartDao.GetFilePartInfo(ctx, &entity.GetFilePartInfoRequest{
 		FileId:     fileid,
 		FilePartId: []int32{partid},

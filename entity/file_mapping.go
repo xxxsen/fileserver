@@ -4,8 +4,7 @@ type GetFileMappingRequest struct {
 	FileName string
 }
 
-type GetFileMappingItem struct {
-	Id       uint64 `json:"id"`
+type FileMappingItem struct {
 	FileName string `json:"file_name"`
 	FileHash string `json:"file_hash"`
 	FileId   uint64 `json:"file_id"`
@@ -14,7 +13,7 @@ type GetFileMappingItem struct {
 }
 
 type GetFileMappingResponse struct {
-	Item *GetFileMappingItem
+	Item *FileMappingItem
 }
 
 type CreateFileMappingRequest struct {

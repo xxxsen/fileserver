@@ -2,14 +2,13 @@ package dao
 
 import (
 	"context"
-	"fileserver/constant"
-	"fileserver/db"
-	"fileserver/entity"
 	"fmt"
+	"tgfile/constant"
+	"tgfile/db"
+	"tgfile/entity"
 	"time"
 
-	"github.com/didi/gendry/builder"
-	"github.com/xxxsen/common/database/dbkit"
+	"github.com/xxxsen/common/database/kv"
 	"github.com/xxxsen/common/idgen"
 	"github.com/xxxsen/common/logutil"
 	"go.uber.org/zap"
@@ -31,27 +30,25 @@ func (f *fileDaoImpl) table() string {
 	return "tg_file_tab"
 }
 
+func (f *fileDaoImpl) buildKey(fileid uint64) string {
+	return fmt.Sprintf("tgfile:file:%d", fileid)
+}
+
 func (f *fileDaoImpl) CreateFileDraft(ctx context.Context, req *entity.CreateFileDraftRequest) (*entity.CreateFileDraftResponse, error) {
 	fileid := idgen.NextId()
 	logutil.GetLogger(ctx).Debug("create file part", zap.Uint64("fileid", fileid), zap.Int64("size", req.FileSize), zap.String("name", req.FileName))
 	now := time.Now().UnixMilli()
-	data := []map[string]interface{}{
-		{
-			"file_name":       req.FileName,
-			"file_size":       req.FileSize,
-			"file_part_count": req.FilePartCount,
-			"file_id":         fileid,
-			"ctime":           now,
-			"mtime":           now,
-			"file_state":      constant.FileStateInit,
-		},
+	item := &entity.FileInfoItem{
+		FileId:        fileid,
+		FileName:      req.FileName,
+		FileSize:      req.FileSize,
+		FilePartCount: req.FilePartCount,
+		Ctime:         now,
+		Mtime:         now,
+		FileState:     constant.FileStateInit,
 	}
-	sql, args, err := builder.BuildInsert(f.table(), data)
-	if err != nil {
-		return nil, fmt.Errorf("build insert failed, err:%w", err)
-	}
-	if _, err := db.GetClient().ExecContext(ctx, sql, args...); err != nil {
-		return nil, fmt.Errorf("exec insert failed, err:%w", err)
+	if err := kv.SetJsonObject(ctx, db.GetClient(), f.table(), f.buildKey(fileid), item); err != nil {
+		return nil, err
 	}
 	return &entity.CreateFileDraftResponse{
 		FileId: fileid,
@@ -59,30 +56,38 @@ func (f *fileDaoImpl) CreateFileDraft(ctx context.Context, req *entity.CreateFil
 }
 
 func (f *fileDaoImpl) MarkFileReady(ctx context.Context, req *entity.MarkFileReadyRequest) (*entity.MarkFileReadyResponse, error) {
-	where := map[string]interface{}{
-		"file_id":    req.FileID,
-		"file_state": constant.FileStateReady,
-	}
-	update := map[string]interface{}{
-		"mtime": time.Now().UnixMilli(),
-	}
-	sql, args, err := builder.BuildUpdate(f.table(), where, update)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := db.GetClient().ExecContext(ctx, sql, args...); err != nil {
+	if err := kv.OnGetJsonKeyForUpdate(ctx, db.GetClient(), f.table(), f.buildKey(req.FileID), func(ctx context.Context, key string, val *entity.FileInfoItem) (*entity.FileInfoItem, bool, error) {
+		if val.FileState != constant.FileStateInit {
+			return nil, false, fmt.Errorf("file not in init state, current state:%d", val.FileState)
+		}
+		val.FileState = constant.FileStateReady
+		val.Mtime = time.Now().UnixMilli()
+		return val, true, nil
+	}); err != nil {
 		return nil, err
 	}
 	return &entity.MarkFileReadyResponse{}, nil
 }
 
 func (f *fileDaoImpl) GetFileInfo(ctx context.Context, req *entity.GetFileInfoRequest) (*entity.GetFileInfoResponse, error) {
-	where := map[string]interface{}{
-		"file_id in": req.FileIds,
+	ks := make([]string, 0, len(req.FileIds))
+	mapping := make(map[uint64]string, len(req.FileIds))
+	for _, fileid := range req.FileIds {
+		key := f.buildKey(fileid)
+		ks = append(ks, key)
+		mapping[fileid] = key
 	}
-	rs := make([]*entity.GetFileInfoItem, 0, len(req.FileIds))
-	if err := dbkit.SimpleQuery(ctx, db.GetClient(), f.table(), where, &rs, dbkit.ScanWithTagName("json")); err != nil {
+	rs, err := kv.MultiGetJsonObject[entity.FileInfoItem](ctx, db.GetClient(), f.table(), ks)
+	if err != nil {
 		return nil, err
 	}
-	return &entity.GetFileInfoResponse{List: rs}, nil
+	rsp := &entity.GetFileInfoResponse{List: make([]*entity.FileInfoItem, 0, len(rs))}
+	for _, fileid := range req.FileIds {
+		v, ok := rs[mapping[fileid]]
+		if !ok {
+			continue
+		}
+		rsp.List = append(rsp.List, v)
+	}
+	return rsp, nil
 }

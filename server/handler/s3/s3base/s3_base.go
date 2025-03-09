@@ -2,8 +2,6 @@ package s3base
 
 import (
 	"encoding/xml"
-	"fileserver/proxyutil"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xxxsen/common/logutil"
@@ -38,21 +36,16 @@ func SimpleReply(ctx *gin.Context) {
 
 func WriteError(c *gin.Context, statuscode int, err error) {
 	ctx := c.Request.Context()
-	info, _ := proxyutil.GetS3Info(ctx)
 	logutil.GetLogger(ctx).Error("write err to client",
 		zap.Error(err),
-		zap.Int("status_code", statuscode),
-		zap.String("bucket", info.Bucket),
-		zap.String("obj", info.Object))
+		zap.Int("status_code", statuscode))
 	traceid, _ := trace.GetTraceId(ctx)
 	e := &S3ErrorMessage{
-		Code:       "500",
-		Message:    err.Error(),
-		Key:        info.Object,
-		BucketName: info.Bucket,
-		Resouce:    fmt.Sprintf("%s/%s", info.Bucket, info.Object),
-		RequestId:  traceid,
-		HostId:     traceid,
+		Code:      "500",
+		Message:   err.Error(),
+		Resouce:   c.Request.URL.Path,
+		RequestId: traceid,
+		HostId:    traceid,
 	}
 	ResponseWithError(c, statuscode, e)
 }

@@ -2,8 +2,8 @@ package filemgr
 
 import (
 	"context"
-	"fileserver/service"
 	"fmt"
+	"tgfile/service"
 )
 
 var defaultLinkMgr ILinkManager

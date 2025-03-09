@@ -2,10 +2,10 @@ package cache
 
 import (
 	"context"
-	"fileserver/cache"
-	"fileserver/dao"
-	"fileserver/entity"
 	"fmt"
+	"tgfile/cache"
+	"tgfile/dao"
+	"tgfile/entity"
 	"time"
 )
 
@@ -71,7 +71,7 @@ func (f *fileDao) GetFileInfo(ctx context.Context, req *entity.GetFileInfoReques
 		if !ok {
 			continue
 		}
-		rsp.List = append(rsp.List, v.(*entity.GetFileInfoItem))
+		rsp.List = append(rsp.List, v.(*entity.FileInfoItem))
 	}
 	return rsp, nil
 }

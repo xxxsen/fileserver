@@ -5,8 +5,7 @@ type GetFilePartInfoRequest struct {
 	FilePartId []int32
 }
 
-type GetFilePartInfoItem struct {
-	Id         uint64 `json:"id"`
+type FilePartInfoItem struct {
 	FileId     uint64 `json:"file_id"`
 	FilePartId int32  `json:"file_part_id"`
 	FileKey    string `json:"file_key"`
@@ -15,13 +14,5 @@ type GetFilePartInfoItem struct {
 }
 
 type GetFilePartInfoResponse struct {
-	List []*GetFilePartInfoItem
-}
-
-type GetFilePartCountRequest struct {
-	FileId uint64
-}
-
-type GetFilePartCountResponse struct {
-	Count int32
+	List []*FilePartInfoItem
 }
